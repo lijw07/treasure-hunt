@@ -1,0 +1,224 @@
+{
+	"animation_player_path": "Character/AnimationPlayer",
+	"blank_threshold": 10,
+	"frame_size": 64,
+	"sprite_groups": [
+		{
+			"animations": [
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_down",
+					"row": 0
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_right",
+					"row": 1
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_up",
+					"row": 2
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "idle_left",
+					"row": 1
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_up",
+					"row": 3
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_right",
+					"row": 4
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_down",
+					"row": 5
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "walk_left",
+					"row": 4
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_down_1",
+					"row": 6
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_down_2",
+					"row": 7
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_down_3",
+					"row": 8
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_right_1",
+					"row": 9
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_right_2",
+					"row": 10
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_right_3",
+					"row": 11
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_up_1",
+					"row": 12
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_up_2",
+					"row": 13
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_up_3",
+					"row": 14
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "sword_combo_left_1",
+					"row": 9
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "sword_combo_left_2",
+					"row": 10
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "sword_combo_left_3",
+					"row": 11
+				}
+			],
+			"frame_duration": 0.1,
+			"hframes": 9,
+			"sprites": [
+				"Character/Body",
+				"Character/Hand",
+				"Character/Head",
+				"Character/Chest",
+				"Character/Leg",
+				"Character/Feet"
+			],
+			"vframes": 56
+		},
+		{
+			"animations": [
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_down_1",
+					"row": 0
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_down_2",
+					"row": 1
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_down_3",
+					"row": 2
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_right_1",
+					"row": 3
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_right_2",
+					"row": 4
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_right_3",
+					"row": 5
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_up_1",
+					"row": 6
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_up_2",
+					"row": 7
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_up_3",
+					"row": 8
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "sword_combo_left_1",
+					"row": 3
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "sword_combo_left_2",
+					"row": 4
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "sword_combo_left_3",
+					"row": 5
+				}
+			],
+			"frame_duration": 0.1,
+			"hframes": 4,
+			"sprites": [
+				"Weapons/Sword"
+			],
+			"vframes": 9
+		}
+	]
+}

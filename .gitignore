@@ -1,0 +1,31 @@
+# Godot 4+ specific ignores
+.godot/
+
+# Godot import cache (auto-regenerated on project open)
+*.import
+
+# Export builds
+/android/
+/ios/
+/web/
+/linux/
+/windows/
+/macos/
+export_presets.cfg
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Mono / C# (if used later)
+.mono/
+data_*/
+mono_crash.*.json

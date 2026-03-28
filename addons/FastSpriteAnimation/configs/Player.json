@@ -1,0 +1,768 @@
+{
+	"animation_player_path": "Character/AnimationPlayer",
+	"blank_threshold": 10,
+	"frame_size": 64,
+	"sprite_groups": [
+		{
+			"animations": [
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_down",
+					"row": 0
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_right",
+					"row": 1
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_up",
+					"row": 2
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "idle_left",
+					"row": 1
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_up",
+					"row": 3
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_right",
+					"row": 4
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_down",
+					"row": 5
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "walk_left",
+					"row": 4
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_down_1",
+					"row": 6
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_down_2",
+					"row": 7
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_down_3",
+					"row": 8
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_right_1",
+					"row": 9
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_right_2",
+					"row": 10
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_right_3",
+					"row": 11
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_up_1",
+					"row": 12
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_up_2",
+					"row": 13
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_up_3",
+					"row": 14
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "sword_combo_left_1",
+					"row": 9
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "sword_combo_left_2",
+					"row": 10
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "sword_combo_left_3",
+					"row": 11
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "roll_down",
+					"row": 17
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "roll_right",
+					"row": 18
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "roll_left",
+					"row": 18
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "roll_up",
+					"row": 19
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_hold_down",
+					"row": 20
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_hold_right",
+					"row": 21
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "idle_hold_left",
+					"row": 21
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_hold_up",
+					"row": 22
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_hold_down",
+					"row": 23
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_hold_right",
+					"row": 24
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "walk_hold_left",
+					"row": 24
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_hold_up",
+					"row": 25
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "jump_down",
+					"row": 26
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "jump_right",
+					"row": 27
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "jump_left",
+					"row": 27
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "jump_up",
+					"row": 28
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "bow_down",
+					"row": 29
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "bow_right",
+					"row": 30
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "bow_left",
+					"row": 30
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "bow_up",
+					"row": 31
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_axe_down",
+					"row": 32
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_axe_right",
+					"row": 33
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "tool_axe_left",
+					"row": 33
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_axe_up",
+					"row": 34
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_pickaxe_down",
+					"row": 35
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_pickaxe_right",
+					"row": 36
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "tool_pickaxe_left",
+					"row": 36
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_pickaxe_up",
+					"row": 37
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_hoe_down",
+					"row": 38
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_hoe_right",
+					"row": 39
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "tool_hoe_left",
+					"row": 39
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "tool_hoe_up",
+					"row": 40
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_watercan_down",
+					"row": 41
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_watercan_right",
+					"row": 42
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "tool_watercan_left",
+					"row": 42
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_watercan_up",
+					"row": 43
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "fish_cast_down",
+					"row": 44
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "fish_cast_right",
+					"row": 45
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "fish_cast_left",
+					"row": 45
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "fish_cast_up",
+					"row": 46
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "fish_reel_down",
+					"row": 47
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "fish_reel_right",
+					"row": 48
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "fish_reel_left",
+					"row": 48
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "fish_reel_up",
+					"row": 49
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_mount_down",
+					"row": 50
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_mount_right",
+					"row": 51
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "idle_mount_left",
+					"row": 51
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_mount_up",
+					"row": 52
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_mount_down",
+					"row": 53
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_mount_right",
+					"row": 54
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "walk_mount_left",
+					"row": 54
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_mount_up",
+					"row": 55
+				}
+			],
+			"frame_duration": 0.1,
+			"hframes": 9,
+			"sprites": [
+				"Character/Body",
+				"Character/Hand",
+				"Character/Head",
+				"Character/Chest",
+				"Character/Leg",
+				"Character/Feet"
+			],
+			"vframes": 56
+		},
+		{
+			"animations": [
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_down_1",
+					"row": 0
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_down_2",
+					"row": 1
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_down_3",
+					"row": 2
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_right_1",
+					"row": 3
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_right_2",
+					"row": 4
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_right_3",
+					"row": 5
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_up_1",
+					"row": 6
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_up_2",
+					"row": 7
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "sword_combo_up_3",
+					"row": 8
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "sword_combo_left_1",
+					"row": 3
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "sword_combo_left_2",
+					"row": 4
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "sword_combo_left_3",
+					"row": 5
+				}
+			],
+			"frame_duration": 0.1,
+			"hframes": 4,
+			"sprites": [
+				"Weapons/Sword"
+			],
+			"vframes": 9
+		},
+		{
+			"animations": [
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "bow_down",
+					"row": 0
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "bow_right",
+					"row": 1
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "bow_left",
+					"row": 1
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "bow_up",
+					"row": 2
+				}
+			],
+			"frame_duration": 0.1,
+			"hframes": 6,
+			"sprites": [
+				"Weapons/Bow"
+			],
+			"vframes": 3
+		},
+		{
+			"animations": [
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_axe_down",
+					"row": 0
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_axe_right",
+					"row": 1
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "tool_axe_left",
+					"row": 1
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_axe_up",
+					"row": 2
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_pickaxe_down",
+					"row": 3
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_pickaxe_right",
+					"row": 4
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "tool_pickaxe_left",
+					"row": 4
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_pickaxe_up",
+					"row": 5
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_hoe_down",
+					"row": 6
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_hoe_right",
+					"row": 7
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "tool_hoe_left",
+					"row": 7
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "tool_hoe_up",
+					"row": 8
+				}
+			],
+			"frame_duration": 0.1,
+			"hframes": 6,
+			"sprites": [
+				"Weapons/Tools"
+			],
+			"vframes": 12
+		},
+		{
+			"animations": [
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "fish_cast_down",
+					"row": 0
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "fish_cast_right",
+					"row": 1
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "fish_cast_left",
+					"row": 1
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "fish_cast_up",
+					"row": 2
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "fish_reel_down",
+					"row": 3
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "fish_reel_right",
+					"row": 4
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "fish_reel_left",
+					"row": 4
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "fish_reel_up",
+					"row": 5
+				}
+			],
+			"frame_duration": 0.1,
+			"hframes": 9,
+			"sprites": [
+				"Weapons/FishingRod"
+			],
+			"vframes": 6
+		},
+		{
+			"animations": [
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_mount_down",
+					"row": 0
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_mount_right",
+					"row": 1
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "idle_mount_left",
+					"row": 1
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "idle_mount_up",
+					"row": 2
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_mount_down",
+					"row": 3
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_mount_right",
+					"row": 0
+				},
+				{
+					"flip_h": true,
+					"flip_v": false,
+					"name": "walk_mount_left",
+					"row": 0
+				},
+				{
+					"flip_h": false,
+					"flip_v": false,
+					"name": "walk_mount_u",
+					"row": 0
+				}
+			],
+			"frame_duration": 0.1,
+			"hframes": 6,
+			"sprites": [
+				"Mount/Horse"
+			],
+			"vframes": 6
+		}
+	]
+}

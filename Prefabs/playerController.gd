@@ -15,9 +15,10 @@ extends CharacterBody2D
 
 # ── Node references ───────────────────────────────────────────────────────────
 @onready var anim_player: AnimationPlayer = $Character/AnimationPlayer
+@onready var bow: Node2D = $Weapons/Bow
 
 # ── State ─────────────────────────────────────────────────────────────────────
-enum State { IDLE, MOVE, DODGE }
+enum State { IDLE, MOVE, DODGE, SHOOT }
 var state: State = State.IDLE
 
 # The direction the character is facing — always follows the mouse
@@ -28,6 +29,13 @@ var facing: String = "down"
 var dodge_timer: float = 0.0
 var dodge_cooldown_timer: float = 0.0
 var dodge_direction: Vector2 = Vector2.ZERO
+
+# Reference to the InputManager autoload for mouse settings
+var _input_mgr: Node
+
+
+func _ready() -> void:
+	_input_mgr = get_node("/root/InputManager")
 
 
 func _physics_process(delta: float) -> void:
@@ -45,6 +53,8 @@ func _physics_process(delta: float) -> void:
 			_state_move(delta)
 		State.DODGE:
 			_state_dodge(delta)
+		State.SHOOT:
+			_state_shoot(delta)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -52,11 +62,22 @@ func _physics_process(delta: float) -> void:
 # ─────────────────────────────────────────────────────────────────────────────
 
 func _update_facing() -> void:
-	var mouse_pos = get_global_mouse_position()
-	var dir = (mouse_pos - global_position).normalized()
+	# Use screen-space mouse position relative to player.
+	# Sensitivity scales how far the cursor "feels" from the player;
+	# Invert Y flips the vertical component (handled in _input via InputManager).
+	var mouse_screen := get_global_mouse_position()
+	var diff := mouse_screen - global_position
+
+	# Apply sensitivity scaling to the direction (amplifies small movements)
+	diff *= _input_mgr.mouse_sensitivity
+
+	# Apply invert Y
+	if _input_mgr.mouse_inverted:
+		diff.y = -diff.y
+
+	var dir := diff.normalized()
 
 	# Pick the cardinal direction closest to the mouse angle
-	# Compare absolute x vs y to decide horizontal vs vertical
 	if abs(dir.x) > abs(dir.y):
 		facing = "right" if dir.x > 0 else "left"
 	else:
@@ -81,6 +102,10 @@ func _state_idle(_delta: float) -> void:
 	if _try_dodge():
 		return
 
+	# Transition: shoot
+	if _try_shoot():
+		return
+
 	move_and_slide()
 
 
@@ -93,6 +118,10 @@ func _state_move(_delta: float) -> void:
 
 	# Transition: dodge
 	if _try_dodge():
+		return
+
+	# Transition: shoot
+	if _try_shoot():
 		return
 
 	velocity = input_dir * move_speed
@@ -148,6 +177,32 @@ func _vector_to_direction(dir: Vector2) -> String:
 		return "right" if dir.x > 0 else "left"
 	else:
 		return "down" if dir.y > 0 else "up"
+
+
+# ─── SHOOT ────────────────────────────────────────────────────────────────
+
+func _try_shoot() -> bool:
+	if not Input.is_action_just_pressed("basic_attack"):
+		return false
+
+	state = State.SHOOT
+	velocity = Vector2.ZERO
+	# Play the bow animation for the current facing direction.
+	# The animation's method call track will call Bow.shoot() at the right frame.
+	_play_anim("bow_" + facing, true)
+	return true
+
+
+func _state_shoot(_delta: float) -> void:
+	velocity = Vector2.ZERO
+	# Wait for the bow animation to finish, then return to idle/move
+	if not anim_player.is_playing() or not anim_player.current_animation.begins_with("bow_"):
+		var input_dir = _get_input_direction()
+		if input_dir != Vector2.ZERO:
+			state = State.MOVE
+		else:
+			state = State.IDLE
+	move_and_slide()
 
 
 func _facing_to_vector() -> Vector2:

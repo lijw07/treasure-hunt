@@ -18,55 +18,99 @@ const P_BTN_HOVER     := Color("#5ca84c")
 const P_BTN_PRESS     := Color("#346828")
 const P_BTN_BORDER    := Color("#284e1c")
 
-const P_EXIT           := Color("#884040")
-const P_EXIT_HOVER     := Color("#a85454")
-const P_EXIT_PRESS     := Color("#6c2c2c")
-const P_EXIT_BORDER    := Color("#4c1c1c")
+const P_EXIT          := Color("#884040")
+const P_EXIT_HOVER    := Color("#a85454")
+const P_EXIT_PRESS    := Color("#6c2c2c")
+const P_EXIT_BORDER   := Color("#4c1c1c")
 
 const P_GOLD          := Color("#ffd860")
 const P_GOLD_DIM      := Color("#c8a040")
-const P_TEXT           := Color("#f8f0e0")
-const P_TEXT_DIM       := Color("#a89880")
-const P_OVERLAY        := Color(0.0, 0.0, 0.0, 0.7)
-const P_KEY_BG         := Color("#3c5830")
+const P_TEXT          := Color("#f8f0e0")
+const P_TEXT_DIM      := Color("#a89880")
+const P_OVERLAY       := Color(0.0, 0.0, 0.0, 0.7)
+const P_KEY_BG        := Color("#3c5830")
 
 # ── Sizing ───────────────────────────────────────────────────────────
-const PANEL_W := 260;  const BTN_W := 220;  const BTN_H := 30
-const BTN_GAP := 8;    const BORDER := 3;   const CORNER := 1
+const PANEL_W         := 260
+const BTN_W           := 220
+const BTN_H           := 30
+const BTN_GAP         := 8
+const BORDER          := 3
+const CORNER          := 1
+
+# Magic numbers for sparkle generation and rendering
+const SPARKLE_COUNT   := 30
+const SPARKLE_SPEED_MIN := 6.0
+const SPARKLE_SPEED_MAX := 18.0
+const SPARKLE_ALPHA_MIN := 0.08
+const SPARKLE_ALPHA_MAX := 0.35
+const SPARKLE_SIZES   := [2, 2, 2, 3]
+const SPARKLE_DRIFT_MIN := -0.4
+const SPARKLE_DRIFT_MAX := 0.4
+const SPARKLE_WAVE_SPEED := 0.0015
+const SPARKLE_WAVE_AMP := 0.15
+const SPARKLE_RESET_OFFSET := 4.0
+
+# Transition timing
+const POPUP_FADE_IN_TIME := 0.15
+const POPUP_SCALE_IN_TIME := 0.15
+const POPUP_FADE_OUT_TIME := 0.12
+const POPUP_SCALE_OUT_TIME := 0.12
+const TITLE_FADE_IN_TIME := 0.5
+const START_FADE_OUT_TIME := 0.4
+const EXIT_FADE_OUT_TIME := 0.25
+
+# Volume and audio settings
+const VOLUME_BGM_SILENT := -40.0
 
 # ── Audio ────────────────────────────────────────────────────────────
-var sfx_hover  : AudioStream
-var sfx_click  : AudioStream
-var sfx_back   : AudioStream
-var sfx_start  : AudioStream
-var sfx_player : AudioStreamPlayer
-var bgm_player : AudioStreamPlayer
+var sfx_hover         : AudioStream
+var sfx_click         : AudioStream
+var sfx_back          : AudioStream
+var sfx_start         : AudioStream
+var sfx_player        : AudioStreamPlayer
+var bgm_player        : AudioStreamPlayer
 
-# ── Node refs ────────────────────────────────────────────────────────
-var font_title : Font   # VT323 for readability
-var font_body  : Font   # same font, different sizes via overrides
-var main_vbox  : VBoxContainer
-var overlay    : ColorRect
-var popup_htp  : PanelContainer
-var popup_set  : PanelContainer
-var sparkle_lyr: Control
-var sparkles   : Array[Dictionary] = []
-var menu_buttons : Array[Button] = []
-var popup_active : PanelContainer = null
-var _dirty_cb    : Callable                # kept so we can disconnect on rebuild
+# ── Node References ──────────────────────────────────────────────────
+var font_title        : Font
+var font_body         : Font
+var main_vbox         : VBoxContainer
+var overlay           : ColorRect
+var popup_htp         : PanelContainer
+var popup_set         : PanelContainer
+var sparkle_lyr       : Control
+var sparkles          : Array[Dictionary] = []
+var menu_buttons      : Array[Button] = []
+var popup_active      : PanelContainer = null
+
+# ── Settings and State ───────────────────────────────────────────────
+var _dirty_cb         : Callable
+var _settings_scroll  : ScrollContainer
+var _rebind_action    : String = ""
+var _rebind_btn       : Button = null
+var popup_confirm     : PanelContainer = null   # "Unsaved changes" dialog
+
+# References for in-place reset (avoid full rebuild flicker)
+var _rebind_buttons   : Dictionary = {}   # action_name → Button
+var _slider_music     : HSlider = null
+var _slider_sfx       : HSlider = null
+var _slider_sens      : HSlider = null
+var _invert_btn       : CheckButton = null
 
 # Autoload reference (resolved at runtime to avoid compile-time errors)
-var input_mgr : Node
+var input_mgr         : Node
 
 
 # ─────────────────────────────────────────────────────────────────────
 #  READY
 # ─────────────────────────────────────────────────────────────────────
+
+## Initialize the main menu scene.
 func _ready() -> void:
 	input_mgr = get_node("/root/InputManager")
 
 	font_title = load("res://Assets/Cute_Fantasy_UI/Fonts/VT323.ttf")
-	font_body  = font_title
+	font_body = font_title
 
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -81,45 +125,44 @@ func _ready() -> void:
 
 	popup_htp.visible = false
 	popup_set.visible = false
-	overlay.visible   = false
+	overlay.visible = false
 
 	_wire_focus(menu_buttons)
 	_entrance_anim()
-
-	if menu_buttons.size() > 0:
-		menu_buttons[0].call_deferred("grab_focus")
-
-	# Start background music after a short delay
-	bgm_player.call_deferred("play")
 
 
 # ═════════════════════════════════════════════════════════════════════
 #  AUDIO
 # ═════════════════════════════════════════════════════════════════════
+
+## Load UI audio streams and configure audio players.
 func _load_audio() -> void:
 	sfx_hover = load("res://Assets/Audio/UI/hover.wav")
 	sfx_click = load("res://Assets/Audio/UI/click.wav")
-	sfx_back  = load("res://Assets/Audio/UI/back.wav")
+	sfx_back = load("res://Assets/Audio/UI/back.wav")
 	sfx_start = load("res://Assets/Audio/UI/start.wav")
 
 	sfx_player = AudioStreamPlayer.new()
 	sfx_player.bus = "Master"
+	sfx_player.volume_db = input_mgr.sfx_to_db(input_mgr.volume_sfx)
 	add_child(sfx_player)
 
-	# BGM — loops seamlessly
 	bgm_player = AudioStreamPlayer.new()
 	bgm_player.bus = "Master"
 	bgm_player.volume_db = input_mgr.volume_to_db(input_mgr.volume_music)
 	var bgm_stream = load("res://Assets/Audio/UI/menu_bgm.wav")
 	bgm_player.stream = bgm_stream
 	add_child(bgm_player)
-	# Loop when finished
-	bgm_player.finished.connect(func(): bgm_player.play())
-	# Start playing if volume > 0
+
+	bgm_player.finished.connect(func():
+		if is_instance_valid(bgm_player):
+			bgm_player.play())
+
 	if input_mgr.volume_music > 0:
 		bgm_player.play()
 
 
+## Play a UI sound effect.
 func _play_sfx(stream: AudioStream) -> void:
 	sfx_player.stream = stream
 	sfx_player.play()
@@ -128,10 +171,12 @@ func _play_sfx(stream: AudioStream) -> void:
 # ═════════════════════════════════════════════════════════════════════
 #  BACKGROUND
 # ═════════════════════════════════════════════════════════════════════
+
+## Create background color and decorative top/bottom border lines.
 func _add_background() -> void:
 	var bg := ColorRect.new()
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.color = P_BG
+	bg.color = Color(P_BG, 0.55)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 
@@ -143,15 +188,20 @@ func _add_background() -> void:
 			line.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 			line.custom_minimum_size.y = 2
 		else:
-			line.anchor_left = 0; line.anchor_right = 1
-			line.anchor_top = 1;  line.anchor_bottom = 1
-			line.offset_top = -2; line.custom_minimum_size.y = 2
+			line.anchor_left = 0
+			line.anchor_right = 1
+			line.anchor_top = 1
+			line.anchor_bottom = 1
+			line.offset_top = -2
+			line.custom_minimum_size.y = 2
 		add_child(line)
 
 
 # ═════════════════════════════════════════════════════════════════════
 #  SPARKLES
 # ═════════════════════════════════════════════════════════════════════
+
+## Initialize animated sparkle particles.
 func _add_sparkles() -> void:
 	sparkle_lyr = Control.new()
 	sparkle_lyr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -161,28 +211,31 @@ func _add_sparkles() -> void:
 	sparkle_lyr.draw.connect(_draw_sparkles)
 
 	var vp := get_viewport_rect().size
-	for i in range(30):
+	for i in range(SPARKLE_COUNT):
 		sparkles.append({
-			"x": randf() * vp.x, "y": randf() * vp.y,
-			"spd": randf_range(6.0, 18.0),
-			"a": randf_range(0.08, 0.35),
-			"sz": [2, 2, 2, 3][randi() % 4],
-			"drift": randf_range(-0.4, 0.4),
+			"x": randf() * vp.x,
+			"y": randf() * vp.y,
+			"spd": randf_range(SPARKLE_SPEED_MIN, SPARKLE_SPEED_MAX),
+			"a": randf_range(SPARKLE_ALPHA_MIN, SPARKLE_ALPHA_MAX),
+			"sz": SPARKLE_SIZES[randi() % SPARKLE_SIZES.size()],
+			"drift": randf_range(SPARKLE_DRIFT_MIN, SPARKLE_DRIFT_MAX),
 			"phase": randf() * TAU,
 		})
 
 
+## Update sparkle positions each frame.
 func _process(delta: float) -> void:
 	var vp := get_viewport_rect().size
 	for s in sparkles:
 		s["y"] -= s["spd"] * delta
-		s["x"] += s["drift"] + sin(s["phase"] + Time.get_ticks_msec() * 0.0015) * 0.15
-		if s["y"] < -4.0:
-			s["y"] = vp.y + 4.0
+		s["x"] += s["drift"] + sin(s["phase"] + Time.get_ticks_msec() * SPARKLE_WAVE_SPEED) * SPARKLE_WAVE_AMP
+		if s["y"] < -SPARKLE_RESET_OFFSET:
+			s["y"] = vp.y + SPARKLE_RESET_OFFSET
 			s["x"] = randf() * vp.x
 	sparkle_lyr.queue_redraw()
 
 
+## Draw all sparkles as small colored rectangles.
 func _draw_sparkles() -> void:
 	for s in sparkles:
 		sparkle_lyr.draw_rect(Rect2(s["x"], s["y"], s["sz"], s["sz"]), Color(P_GOLD, s["a"]))
@@ -191,8 +244,9 @@ func _draw_sparkles() -> void:
 # ═════════════════════════════════════════════════════════════════════
 #  MAIN MENU
 # ═════════════════════════════════════════════════════════════════════
+
+## Construct the main menu UI with title, buttons, and footer.
 func _add_main_menu() -> void:
-	# Use a CenterContainer that fills the screen
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -204,7 +258,7 @@ func _add_main_menu() -> void:
 	main_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	center.add_child(main_vbox)
 
-	# ── Title block ──────────────────────────────────────────────
+	# Title block
 	var title_panel := PanelContainer.new()
 	title_panel.custom_minimum_size = Vector2(PANEL_W, 0)
 	title_panel.add_theme_stylebox_override("panel",
@@ -238,10 +292,9 @@ func _add_main_menu() -> void:
 
 	tvbox.add_child(_spacer(6))
 
-	# ── Gap ──────────────────────────────────────────────────────
 	main_vbox.add_child(_spacer(8))
 
-	# ── Button card ──────────────────────────────────────────────
+	# Button card
 	var card := PanelContainer.new()
 	card.custom_minimum_size = Vector2(PANEL_W, 0)
 	card.add_theme_stylebox_override("panel", _make_double_frame_style())
@@ -274,7 +327,7 @@ func _add_main_menu() -> void:
 	bvbox.add_child(b_exit)
 	menu_buttons.append(b_exit)
 
-	# ── Footer ───────────────────────────────────────────────────
+	# Footer
 	main_vbox.add_child(_spacer(10))
 	var foot := Label.new()
 	foot.text = "v0.1"
@@ -289,75 +342,98 @@ func _add_main_menu() -> void:
 # ═════════════════════════════════════════════════════════════════════
 #  FOCUS / KEYBOARD NAVIGATION
 # ═════════════════════════════════════════════════════════════════════
+
+## Configure focus neighbors for cyclic button navigation.
 func _wire_focus(buttons: Array[Button]) -> void:
 	for i in buttons.size():
 		var btn := buttons[i]
 		var prev := buttons[(i - 1) % buttons.size()]
-		var nxt  := buttons[(i + 1) % buttons.size()]
-		btn.focus_neighbor_top    = prev.get_path()
+		var nxt := buttons[(i + 1) % buttons.size()]
+		btn.focus_neighbor_top = prev.get_path()
 		btn.focus_neighbor_bottom = nxt.get_path()
-		btn.focus_neighbor_left   = btn.get_path()
-		btn.focus_neighbor_right  = btn.get_path()
-		btn.focus_previous        = prev.get_path()
-		btn.focus_next            = nxt.get_path()
+		btn.focus_neighbor_left = btn.get_path()
+		btn.focus_neighbor_right = btn.get_path()
+		btn.focus_previous = prev.get_path()
+		btn.focus_next = nxt.get_path()
 		btn.focus_entered.connect(_on_btn_focus)
 
 
+## Play hover SFX when a button receives keyboard focus.
 func _on_btn_focus() -> void:
 	_play_sfx(sfx_hover)
 
 
-## Rebind intercept — uses _input so mouse clicks are caught BEFORE the GUI
-## consumes them (otherwise LMB/RMB land on a button and never reach
-## _unhandled_input).
+## Intercept input before the GUI system.
+## Handles: (1) ESC to close popups / trigger unsaved-changes confirmation,
+## (2) key rebinding capture (must run before GUI buttons consume clicks).
 func _input(event: InputEvent) -> void:
-	if not visible or _rebind_action == "":
+	if not visible:
 		return
 
-	# Let Escape cancel the rebind
-	if event is InputEventKey and (event as InputEventKey).physical_keycode == KEY_ESCAPE:
-		_cancel_rebind()
-		_play_sfx(sfx_back)
+	# ── Rebind mode: capture the next key/mouse press ────────────
+	if _rebind_action != "":
+		# Cancel rebind with Escape or pause key (unless rebinding pause itself)
+		if _rebind_action != "pause" and event is InputEventKey and event.is_pressed():
+			var key := (event as InputEventKey).physical_keycode
+			if key == KEY_NONE:
+				key = (event as InputEventKey).keycode
+			var is_cancel := (key == KEY_ESCAPE)
+			if not is_cancel and InputMap.has_action("pause"):
+				is_cancel = InputMap.event_is_action(event, "pause")
+			if is_cancel:
+				_cancel_rebind()
+				_play_sfx(sfx_back)
+				get_viewport().set_input_as_handled()
+				return
+
+		# Accept key or mouse button presses (ignore scroll wheel)
+		var accepted := false
+		if event is InputEventKey and event.is_pressed() and not event.is_echo():
+			input_mgr.rebind_action(_rebind_action, event)
+			accepted = true
+		elif event is InputEventMouseButton and event.is_pressed():
+			var mb := (event as InputEventMouseButton).button_index
+			if mb != MOUSE_BUTTON_WHEEL_UP and mb != MOUSE_BUTTON_WHEEL_DOWN \
+					and mb != MOUSE_BUTTON_WHEEL_LEFT and mb != MOUSE_BUTTON_WHEEL_RIGHT:
+				input_mgr.rebind_action(_rebind_action, event)
+				accepted = true
+
+		if accepted:
+			if is_instance_valid(_rebind_btn):
+				_rebind_btn.text = input_mgr.get_binding_text(_rebind_action)
+				_rebind_btn.add_theme_color_override("font_color", P_GOLD)
+			_play_sfx(sfx_click)
+			_rebind_action = ""
+			_rebind_btn = null
+		# Swallow all events during rebind to prevent clicks hitting UI
 		get_viewport().set_input_as_handled()
 		return
 
-	# Accept key presses or mouse button presses
-	var accepted := false
-	if event is InputEventKey and event.is_pressed() and not event.is_echo():
-		input_mgr.rebind_action(_rebind_action, event)
-		accepted = true
-	elif event is InputEventMouseButton and event.is_pressed():
-		input_mgr.rebind_action(_rebind_action, event)
-		accepted = true
-
-	if accepted:
-		if is_instance_valid(_rebind_btn):
-			_rebind_btn.text = input_mgr.get_binding_text(_rebind_action)
-		_play_sfx(sfx_click)
-		_rebind_action = ""
-		_rebind_btn = null
-		get_viewport().set_input_as_handled()
-	else:
-		# Swallow everything while in rebind mode so clicks don't hit UI
-		get_viewport().set_input_as_handled()
+	# ── ESC / ui_cancel: close popups (must be in _input so GUI ─
+	#    buttons don't swallow the key before we see it)
+	if event.is_action_pressed("ui_cancel"):
+		if popup_confirm and is_instance_valid(popup_confirm) and popup_confirm.visible:
+			_play_sfx(sfx_back)
+			_close_confirm_popup()
+			get_viewport().set_input_as_handled()
+			return
+		if popup_active:
+			_play_sfx(sfx_back)
+			_try_close_settings()
+			get_viewport().set_input_as_handled()
+		return
 
 
+## Map game movement keys (WASD) to UI navigation actions.
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
 
-	if event.is_action_pressed("ui_cancel"):
-		if popup_active:
-			_play_sfx(sfx_back)
-			_close_popup(popup_active)
-			get_viewport().set_input_as_handled()
-		return
-
-	# Map WASD game-movement keys → UI navigation
+	# Map movement actions to UI navigation
 	var mapping := {
-		"move_up":    "ui_up",
-		"move_down":  "ui_down",
-		"move_left":  "ui_left",
+		"move_up": "ui_up",
+		"move_down": "ui_down",
+		"move_left": "ui_left",
 		"move_right": "ui_right",
 	}
 	for game_action in mapping:
@@ -373,25 +449,32 @@ func _unhandled_input(event: InputEvent) -> void:
 # ═════════════════════════════════════════════════════════════════════
 #  STYLE BUILDERS
 # ═════════════════════════════════════════════════════════════════════
+
+## Create a frame style with specified border color and background color.
 func _make_frame_style(border_col: Color, bg_col: Color, bw: int = BORDER) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg_col
 	s.border_color = border_col
 	s.set_border_width_all(bw)
 	s.set_corner_radius_all(CORNER)
-	s.content_margin_left = 14; s.content_margin_right = 14
-	s.content_margin_top = 8;   s.content_margin_bottom = 8
+	s.content_margin_left = 14
+	s.content_margin_right = 14
+	s.content_margin_top = 8
+	s.content_margin_bottom = 8
 	return s
 
 
+## Create a double-frame style with shadow for card containers.
 func _make_double_frame_style() -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = P_FRAME_INNER
 	s.border_color = P_FRAME_BORDER
 	s.set_border_width_all(BORDER)
 	s.set_corner_radius_all(CORNER)
-	s.content_margin_left = 18; s.content_margin_right = 18
-	s.content_margin_top = 14;  s.content_margin_bottom = 14
+	s.content_margin_left = 18
+	s.content_margin_right = 18
+	s.content_margin_top = 14
+	s.content_margin_bottom = 14
 	s.shadow_color = P_FRAME_OUTER
 	s.shadow_size = 4
 	s.shadow_offset = Vector2.ZERO
@@ -401,6 +484,8 @@ func _make_double_frame_style() -> StyleBoxFlat:
 # ═════════════════════════════════════════════════════════════════════
 #  BUTTON FACTORY
 # ═════════════════════════════════════════════════════════════════════
+
+## Create a styled menu button with hover and press effects.
 func _make_button(label_text: String, is_exit: bool) -> Button:
 	var btn := Button.new()
 	btn.text = label_text
@@ -413,53 +498,63 @@ func _make_button(label_text: String, is_exit: bool) -> Button:
 	btn.add_theme_color_override("font_pressed_color", P_TEXT)
 	btn.add_theme_color_override("font_focus_color", P_TEXT)
 
-	var base   := P_EXIT if is_exit else P_BTN
-	var hover  := P_EXIT_HOVER if is_exit else P_BTN_HOVER
-	var press  := P_EXIT_PRESS if is_exit else P_BTN_PRESS
+	var base := P_EXIT if is_exit else P_BTN
+	var hover := P_EXIT_HOVER if is_exit else P_BTN_HOVER
+	var press := P_EXIT_PRESS if is_exit else P_BTN_PRESS
 	var border := P_EXIT_BORDER if is_exit else P_BTN_BORDER
 	var hilite := Color("#c86060") if is_exit else P_FRAME_HILITE
 
-	# Normal
+	# Normal state
 	var sn := StyleBoxFlat.new()
-	sn.bg_color = base;  sn.border_color = border
-	sn.set_border_width_all(2);  sn.border_width_bottom = 4
+	sn.bg_color = base
+	sn.border_color = border
+	sn.set_border_width_all(2)
+	sn.border_width_bottom = 4
 	sn.set_corner_radius_all(CORNER)
-	sn.content_margin_left = 8;  sn.content_margin_right = 8
-	sn.content_margin_top = 4;   sn.content_margin_bottom = 6
+	sn.content_margin_left = 8
+	sn.content_margin_right = 8
+	sn.content_margin_top = 4
+	sn.content_margin_bottom = 6
 	btn.add_theme_stylebox_override("normal", sn)
 
-	# Hover
+	# Hover state
 	var sh := sn.duplicate()
-	sh.bg_color = hover;  sh.border_color = hilite
+	sh.bg_color = hover
+	sh.border_color = hilite
 	btn.add_theme_stylebox_override("hover", sh)
 
-	# Pressed
+	# Pressed state
 	var sp := sn.duplicate()
-	sp.bg_color = press;  sp.border_width_bottom = 2
-	sp.content_margin_top = 6;  sp.content_margin_bottom = 4
+	sp.bg_color = press
+	sp.border_width_bottom = 2
+	sp.content_margin_top = 6
+	sp.content_margin_bottom = 4
 	btn.add_theme_stylebox_override("pressed", sp)
 
-	# Focus (keyboard)
+	# Focus state (keyboard)
 	var sf := sh.duplicate()
 	sf.border_color = P_GOLD
 	btn.add_theme_stylebox_override("focus", sf)
 
-	# Disabled (greyed-out)
+	# Disabled state
 	var sd := sn.duplicate()
 	sd.bg_color = Color(base, 0.4)
 	sd.border_color = Color(border, 0.3)
 	btn.add_theme_stylebox_override("disabled", sd)
 	btn.add_theme_color_override("font_disabled_color", Color(P_TEXT, 0.35))
 
-	# Mouse hover → sync with keyboard focus + SFX + scale
+	# Mouse hover effects
 	btn.mouse_entered.connect(func():
+		if not is_instance_valid(btn):
+			return
 		btn.grab_focus()
 		btn.pivot_offset = btn.size * 0.5
 		create_tween().tween_property(btn, "scale", Vector2(1.04, 1.04), 0.08))
 	btn.mouse_exited.connect(func():
+		if not is_instance_valid(btn):
+			return
 		btn.pivot_offset = btn.size * 0.5
 		create_tween().tween_property(btn, "scale", Vector2.ONE, 0.08))
-	# Click SFX is connected per-button in _add_main_menu callbacks
 
 	return btn
 
@@ -467,6 +562,8 @@ func _make_button(label_text: String, is_exit: bool) -> Button:
 # ═════════════════════════════════════════════════════════════════════
 #  OVERLAY
 # ═════════════════════════════════════════════════════════════════════
+
+## Create a semi-transparent overlay for popup backgrounds.
 func _add_overlay() -> void:
 	overlay = ColorRect.new()
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -478,15 +575,25 @@ func _add_overlay() -> void:
 # ═════════════════════════════════════════════════════════════════════
 #  HOW TO PLAY
 # ═════════════════════════════════════════════════════════════════════
+
+## Create the "How to Play" popup with control bindings.
 func _add_how_to_play() -> void:
 	popup_htp = _popup_shell("How to Play")
 	var box : VBoxContainer = popup_htp.get_meta("content")
 
 	var controls := [
-		["W A S D", "Move in all directions"],
-		["SPACE", "Dodge roll"],
-		["L-CLICK", "Shoot your bow"],
-		["MOUSE", "Change aim direction"],
+		["%s %s %s %s" % [
+			str(input_mgr.get_binding_text("move_up")),
+			str(input_mgr.get_binding_text("move_left")),
+			str(input_mgr.get_binding_text("move_down")),
+			str(input_mgr.get_binding_text("move_right"))],
+			"Move in all directions"],
+		[str(input_mgr.get_binding_text("dodge")), "Dodge roll"],
+		[str(input_mgr.get_binding_text("basic_attack")), "Basic attack"],
+		[str(input_mgr.get_binding_text("heavy_attack")), "Heavy attack"],
+		[str(input_mgr.get_binding_text("interact")), "Interact"],
+		[str(input_mgr.get_binding_text("jump")), "Jump"],
+		["MOUSE", "Aim direction"],
 	]
 	for c in controls:
 		var row := HBoxContainer.new()
@@ -517,19 +624,25 @@ func _add_how_to_play() -> void:
 	close.pressed.connect(func():
 		_play_sfx(sfx_back)
 		_close_popup(popup_htp))
-	var cc := CenterContainer.new(); cc.add_child(close)
+	var cc := CenterContainer.new()
+	cc.add_child(close)
 	box.add_child(cc)
 	popup_htp.set_meta("close_btn", close)
 
 
+## Create a styled key badge for displaying control inputs.
 func _key_badge(text: String) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.custom_minimum_size = Vector2(80, 22)
 	var s := StyleBoxFlat.new()
-	s.bg_color = P_KEY_BG; s.border_color = P_BTN_BORDER
-	s.set_border_width_all(2); s.set_corner_radius_all(CORNER)
-	s.content_margin_left = 6; s.content_margin_right = 6
-	s.content_margin_top = 2;  s.content_margin_bottom = 2
+	s.bg_color = P_KEY_BG
+	s.border_color = P_BTN_BORDER
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(CORNER)
+	s.content_margin_left = 6
+	s.content_margin_right = 6
+	s.content_margin_top = 2
+	s.content_margin_bottom = 2
 	p.add_theme_stylebox_override("panel", s)
 	var l := Label.new()
 	l.text = text
@@ -544,58 +657,71 @@ func _key_badge(text: String) -> PanelContainer:
 # ═════════════════════════════════════════════════════════════════════
 #  SETTINGS  (reads from InputManager autoload)
 # ═════════════════════════════════════════════════════════════════════
-var _rebind_action : String = ""       # action currently waiting for a key
-var _rebind_btn    : Button  = null    # the button showing "Press a key…"
 
+## Create the Settings popup with volume, mouse, and control rebinding options.
 func _add_settings() -> void:
 	popup_set = _popup_shell("Settings")
 	var box : VBoxContainer = popup_set.get_meta("content")
 
-	# Scrollable area — scrollbar hidden
+	# Fixed-height clip wrapper prevents the popup from growing when
+	# child content (e.g. rebind text) changes size.
+	var clip_wrapper := Control.new()
+	clip_wrapper.custom_minimum_size = Vector2(280, 360)
+	clip_wrapper.clip_contents = true
+	clip_wrapper.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	clip_wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(clip_wrapper)
+
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(280, 360)
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode  = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	box.add_child(scroll)
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	scroll.follow_focus = false
+	clip_wrapper.add_child(scroll)
+	_settings_scroll = scroll
 
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 4)
 	scroll.add_child(content)
 
-	var im := input_mgr
-
-	# ── Volume ───────────────────────────────────────────────────
+	# Volume section
 	content.add_child(_section_header("Volume"))
 	content.add_child(_divider())
 	content.add_child(_spacer(4))
 
-	content.add_child(_make_slider_row("Music", 0, 100, 5, im.volume_music, func(val: float):
-		im.volume_music = val
-		im.mark_dirty()
+	var music_row := _make_slider_row("Music", 0, 100, 5, input_mgr.volume_music, func(val: float):
+		input_mgr.volume_music = val
+		input_mgr.mark_dirty()
 		bgm_player.volume_db = input_mgr.volume_to_db(val)
 		if val > 0 and not bgm_player.playing:
 			bgm_player.play()
-		_play_sfx(sfx_hover)))
+		_play_sfx(sfx_hover))
+	content.add_child(music_row)
+	_slider_music = _find_slider_in_row(music_row)
 
-	content.add_child(_make_slider_row("SFX", 0, 100, 5, im.volume_sfx, func(val: float):
-		im.volume_sfx = val
-		im.mark_dirty()
-		sfx_player.volume_db = input_mgr.volume_to_db(val)
-		_play_sfx(sfx_hover)))
+	var sfx_row := _make_slider_row("SFX", 0, 100, 5, input_mgr.volume_sfx, func(val: float):
+		input_mgr.volume_sfx = val
+		input_mgr.mark_dirty()
+		sfx_player.volume_db = input_mgr.sfx_to_db(val)
+		_play_sfx(sfx_hover))
+	content.add_child(sfx_row)
+	_slider_sfx = _find_slider_in_row(sfx_row)
 
 	content.add_child(_spacer(6))
 
-	# ── Mouse ────────────────────────────────────────────────────
+	# Mouse section
 	content.add_child(_section_header("Mouse"))
 	content.add_child(_divider())
 	content.add_child(_spacer(4))
 
-	content.add_child(_make_slider_row("Sensitivity", 10, 300, 10,
-		int(im.mouse_sensitivity * 100), func(val: float):
-			im.mouse_sensitivity = val / 100.0
-			im.mark_dirty()
-			_play_sfx(sfx_hover)))
+	var sens_row := _make_slider_row("Sensitivity", 10, 300, 10,
+		int(input_mgr.mouse_sensitivity * 100), func(val: float):
+			input_mgr.mouse_sensitivity = val / 100.0
+			input_mgr.mark_dirty()
+			_play_sfx(sfx_hover))
+	content.add_child(sens_row)
+	_slider_sens = _find_slider_in_row(sens_row)
 
 	# Invert Y toggle
 	var invert_row := HBoxContainer.new()
@@ -611,19 +737,21 @@ func _add_settings() -> void:
 	invert_row.add_child(inv_lbl)
 
 	var inv_btn := CheckButton.new()
-	inv_btn.button_pressed = im.mouse_inverted
+	inv_btn.button_pressed = input_mgr.mouse_inverted
 	inv_btn.focus_mode = Control.FOCUS_ALL
 	inv_btn.add_theme_color_override("font_color", P_TEXT)
 	inv_btn.toggled.connect(func(on: bool):
-		im.mouse_inverted = on
-		im.mark_dirty()
+		input_mgr.mouse_inverted = on
+		input_mgr.mark_dirty()
 		_play_sfx(sfx_click))
 	invert_row.add_child(inv_btn)
+	_invert_btn = inv_btn
 
 	content.add_child(_spacer(6))
 
-	# ── Controls (clickable rebind buttons) ──────────────────────
-	var categories : Dictionary = im.get_actions_by_category()
+	# Control rebind section
+	_rebind_buttons.clear()
+	var categories : Dictionary = input_mgr.get_actions_by_category()
 	for cat_name in categories:
 		content.add_child(_section_header(cat_name))
 		content.add_child(_divider())
@@ -632,11 +760,13 @@ func _add_settings() -> void:
 		for action_name in categories[cat_name]:
 			var row := HBoxContainer.new()
 			row.add_theme_constant_override("separation", 8)
+			row.clip_contents = true
 			content.add_child(row)
 
 			var lbl := Label.new()
-			lbl.text = im.get_label(action_name)
+			lbl.text = input_mgr.get_label(action_name)
 			lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			lbl.clip_text = true
 			lbl.add_theme_font_override("font", font_body)
 			lbl.add_theme_font_size_override("font_size", 16)
 			lbl.add_theme_color_override("font_color", P_TEXT)
@@ -644,33 +774,52 @@ func _add_settings() -> void:
 
 			var bind_btn := _make_rebind_button(action_name)
 			row.add_child(bind_btn)
+			_rebind_buttons[action_name] = bind_btn
 
 		content.add_child(_spacer(4))
 
-	# Reset to defaults
+	# Reset to defaults button
 	var reset_btn := _make_button("Reset Defaults", true)
 	reset_btn.custom_minimum_size = Vector2(160, 26)
 	reset_btn.pressed.connect(func():
-		im.reset_to_defaults()
 		_play_sfx(sfx_click)
 		_cancel_rebind()
-		# Tear down old popup immediately (no tween — it's being replaced)
-		popup_active = null
-		overlay.visible = false
-		var old_wrapper := popup_set.get_parent()
-		if old_wrapper:
-			old_wrapper.queue_free()
-		else:
-			popup_set.queue_free()
-		# Rebuild fresh
-		_add_settings()
-		_open_popup(popup_set))
-	var rc := CenterContainer.new(); rc.add_child(reset_btn)
+		input_mgr.reset_to_defaults()
+
+		# Update sliders in-place (no rebuild, no flicker)
+		if is_instance_valid(_slider_music):
+			_slider_music.set_value_no_signal(input_mgr.volume_music)
+			_update_slider_pct(_slider_music)
+		if is_instance_valid(_slider_sfx):
+			_slider_sfx.set_value_no_signal(input_mgr.volume_sfx)
+			_update_slider_pct(_slider_sfx)
+		if is_instance_valid(_slider_sens):
+			_slider_sens.set_value_no_signal(int(input_mgr.mouse_sensitivity * 100))
+			_update_slider_pct(_slider_sens)
+		if is_instance_valid(_invert_btn):
+			_invert_btn.set_pressed_no_signal(input_mgr.mouse_inverted)
+
+		# Update all rebind button labels
+		for action_name in _rebind_buttons:
+			var btn : Button = _rebind_buttons[action_name]
+			if is_instance_valid(btn):
+				btn.text = input_mgr.get_binding_text(action_name)
+
+		# Sync audio players to new default values
+		bgm_player.volume_db = input_mgr.volume_to_db(input_mgr.volume_music)
+		sfx_player.volume_db = input_mgr.sfx_to_db(input_mgr.volume_sfx)
+		if input_mgr.volume_music > 0 and not bgm_player.playing:
+			bgm_player.play()
+
+		# Keep focus on the reset button
+		reset_btn.grab_focus())
+	var rc := CenterContainer.new()
+	rc.add_child(reset_btn)
 	content.add_child(rc)
 
 	content.add_child(_spacer(6))
 
-	# Save + Back buttons side by side
+	# Save and Back buttons
 	var btn_row := HBoxContainer.new()
 	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	btn_row.add_theme_constant_override("separation", 12)
@@ -679,23 +828,26 @@ func _add_settings() -> void:
 	save_btn.custom_minimum_size = Vector2(100, 26)
 	save_btn.pressed.connect(func():
 		_cancel_rebind()
-		im.save_settings()
+		input_mgr.save_settings()
 		_play_sfx(sfx_click)
 		_close_popup(popup_set)
 		if menu_buttons.size() > 0:
 			menu_buttons[0].grab_focus())
+
 	# Disconnect previous dirty callback if rebuilding
-	if _dirty_cb.is_valid() and im.dirty_changed.is_connected(_dirty_cb):
-		im.dirty_changed.disconnect(_dirty_cb)
-	# Enable / disable Save based on unsaved changes
+	if _dirty_cb.is_valid() and input_mgr.dirty_changed.is_connected(_dirty_cb):
+		input_mgr.dirty_changed.disconnect(_dirty_cb)
+
+	# Enable/disable Save button based on unsaved changes
 	_dirty_cb = func(dirty: bool):
 		if not is_instance_valid(save_btn):
 			return
 		save_btn.disabled = not dirty
 		save_btn.focus_mode = Control.FOCUS_ALL if dirty else Control.FOCUS_NONE
 		save_btn.mouse_filter = Control.MOUSE_FILTER_STOP if dirty else Control.MOUSE_FILTER_IGNORE
-	im.dirty_changed.connect(_dirty_cb)
-	# Start fully disabled
+	input_mgr.dirty_changed.connect(_dirty_cb)
+
+	# Initialize as disabled
 	save_btn.disabled = true
 	save_btn.focus_mode = Control.FOCUS_NONE
 	save_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -704,18 +856,17 @@ func _add_settings() -> void:
 	var back_btn := _make_button("Back", false)
 	back_btn.custom_minimum_size = Vector2(100, 26)
 	back_btn.pressed.connect(func():
-		_cancel_rebind()
-		im.load_settings()   # revert unsaved changes
 		_play_sfx(sfx_back)
-		_close_popup(popup_set))
+		_try_close_settings())
 	btn_row.add_child(back_btn)
 
-	var cc := CenterContainer.new(); cc.add_child(btn_row)
+	var cc := CenterContainer.new()
+	cc.add_child(btn_row)
 	content.add_child(cc)
 	popup_set.set_meta("close_btn", back_btn)
 
-	# Clear any dirty state that may have been triggered during popup construction
-	im.clear_dirty()
+	# Clear dirty state from initialization
+	input_mgr.clear_dirty()
 	save_btn.disabled = true
 	save_btn.focus_mode = Control.FOCUS_NONE
 	save_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -725,11 +876,15 @@ func _add_settings() -> void:
 #  REBIND BUTTON FACTORY
 # ═════════════════════════════════════════════════════════════════════
 
-## Create a button that shows the current binding and enters listen mode on click.
+## Create a button that displays the current key binding and enters rebind mode on click.
 func _make_rebind_button(action_name: String) -> Button:
 	var btn := Button.new()
 	btn.text = input_mgr.get_binding_text(action_name)
-	btn.custom_minimum_size = Vector2(72, 22)
+	btn.custom_minimum_size = Vector2(120, 22)
+	btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+	btn.clip_text = true
+	btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	btn.expand_icon = true
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.add_theme_font_override("font", font_body)
 	btn.add_theme_font_size_override("font_size", 14)
@@ -738,27 +893,32 @@ func _make_rebind_button(action_name: String) -> Button:
 	btn.add_theme_color_override("font_pressed_color", P_TEXT)
 	btn.add_theme_color_override("font_focus_color", P_GOLD)
 
-	# Normal style — looks like a key badge
+	# Normal style
 	var sn := StyleBoxFlat.new()
-	sn.bg_color = P_KEY_BG; sn.border_color = P_BTN_BORDER
-	sn.set_border_width_all(2); sn.set_corner_radius_all(CORNER)
-	sn.content_margin_left = 6; sn.content_margin_right = 6
-	sn.content_margin_top = 2;  sn.content_margin_bottom = 2
+	sn.bg_color = P_KEY_BG
+	sn.border_color = P_BTN_BORDER
+	sn.set_border_width_all(2)
+	sn.set_corner_radius_all(CORNER)
+	sn.content_margin_left = 6
+	sn.content_margin_right = 6
+	sn.content_margin_top = 2
+	sn.content_margin_bottom = 2
 	btn.add_theme_stylebox_override("normal", sn)
 
-	# Hover
+	# Hover state
 	var sh := sn.duplicate()
 	sh.border_color = P_FRAME_HILITE
 	btn.add_theme_stylebox_override("hover", sh)
 
-	# Focus
+	# Focus state
 	var sf := sn.duplicate()
 	sf.border_color = P_GOLD
 	btn.add_theme_stylebox_override("focus", sf)
 
-	# Pressed / listening
+	# Pressed/listening state
 	var sp := sn.duplicate()
-	sp.bg_color = P_FRAME_BORDER; sp.border_color = P_GOLD
+	sp.bg_color = P_FRAME_BORDER
+	sp.border_color = P_GOLD
 	btn.add_theme_stylebox_override("pressed", sp)
 
 	btn.pressed.connect(func():
@@ -767,27 +927,30 @@ func _make_rebind_button(action_name: String) -> Button:
 	return btn
 
 
-## Enter listening mode — next key/mouse press will rebind the action.
+## Start listening for a key/mouse press to rebind an action.
 func _start_rebind(action_name: String, btn: Button) -> void:
-	_cancel_rebind()   # cancel any previous listen
+	_cancel_rebind()
 	_rebind_action = action_name
 	_rebind_btn = btn
-	btn.text = "..."
+	var cancel_key = str(input_mgr.get_binding_text("pause"))
+	if action_name == "pause":
+		btn.text = "Press a key..."
+	else:
+		btn.text = "... %s to cancel" % cancel_key
+	btn.add_theme_color_override("font_color", P_GOLD)
 	_play_sfx(sfx_click)
 
 
-## Cancel listening mode without changing anything.
+## Cancel the current rebind operation without saving changes.
 func _cancel_rebind() -> void:
 	if _rebind_btn and is_instance_valid(_rebind_btn) and _rebind_action != "":
 		_rebind_btn.text = input_mgr.get_binding_text(_rebind_action)
+		_rebind_btn.add_theme_color_override("font_color", P_GOLD)
 	_rebind_action = ""
 	_rebind_btn = null
 
 
-## (Rebind intercept is now handled inside _unhandled_input above)
-
-
-## Build a labelled slider row:  "Label  ───●─── 50%"
+## Create a horizontal slider row with label, slider, and percentage display.
 func _make_slider_row(label_text: String, min_val: float, max_val: float,
 		step_val: float, initial: float, on_change: Callable) -> HBoxContainer:
 	var row := HBoxContainer.new()
@@ -802,7 +965,9 @@ func _make_slider_row(label_text: String, min_val: float, max_val: float,
 	row.add_child(lbl)
 
 	var slider := HSlider.new()
-	slider.min_value = min_val;  slider.max_value = max_val;  slider.step = step_val
+	slider.min_value = min_val
+	slider.max_value = max_val
+	slider.step = step_val
 	slider.value = initial
 	slider.custom_minimum_size = Vector2(110, 16)
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -812,13 +977,16 @@ func _make_slider_row(label_text: String, min_val: float, max_val: float,
 	var track := StyleBoxFlat.new()
 	track.bg_color = P_FRAME_BORDER
 	track.set_corner_radius_all(1)
-	track.content_margin_top = 6;  track.content_margin_bottom = 6
+	track.content_margin_top = 6
+	track.content_margin_bottom = 6
 	slider.add_theme_stylebox_override("slider", track)
 
 	# Filled portion
 	var fill := StyleBoxFlat.new()
-	fill.bg_color = P_BTN; fill.set_corner_radius_all(1)
-	fill.content_margin_top = 6;  fill.content_margin_bottom = 6
+	fill.bg_color = P_BTN
+	fill.set_corner_radius_all(1)
+	fill.content_margin_top = 6
+	fill.content_margin_bottom = 6
 	slider.add_theme_stylebox_override("grabber_area", fill)
 	slider.add_theme_stylebox_override("grabber_area_highlight", fill)
 
@@ -838,28 +1006,46 @@ func _make_slider_row(label_text: String, min_val: float, max_val: float,
 	row.add_child(pct)
 
 	slider.value_changed.connect(func(val: float):
-		pct.text = "%d%%" % int(val)
+		if is_instance_valid(pct):
+			pct.text = "%d%%" % int(val)
 		on_change.call(val))
 
-	# Sync initial display (update pct label only — don't fire on_change
-	# to avoid marking dirty on popup build)
-	pct.text = "%d%%" % int(initial)
 	return row
 
 
-## Create a small square grabber texture via an Image.
+## Find the HSlider child inside a slider row created by _make_slider_row().
+func _find_slider_in_row(row: HBoxContainer) -> HSlider:
+	for child in row.get_children():
+		if child is HSlider:
+			return child
+	return null
+
+
+## Update the percent label next to a slider (sibling at index + 1).
+func _update_slider_pct(slider: HSlider) -> void:
+	var row := slider.get_parent()
+	if row == null:
+		return
+	var idx := slider.get_index()
+	if idx + 1 < row.get_child_count():
+		var pct := row.get_child(idx + 1)
+		if pct is Label:
+			pct.text = "%d%%" % int(slider.value)
+
+
+## Create a small square grabber texture for slider controls.
 func _make_grabber_texture(fill: Color, border: Color) -> ImageTexture:
 	var tex_size := 10
 	var img := Image.create(tex_size, tex_size, false, Image.FORMAT_RGBA8)
 	img.fill(border)
-	# Inner fill (inset by 2px)
+	# Inner fill inset by 2 pixels
 	for y in range(2, tex_size - 2):
 		for x in range(2, tex_size - 2):
 			img.set_pixel(x, y, fill)
 	return ImageTexture.create_from_image(img)
 
 
-## Thin horizontal divider line.
+## Create a thin horizontal divider line.
 func _divider() -> ColorRect:
 	var div := ColorRect.new()
 	div.custom_minimum_size = Vector2(0, 1)
@@ -868,7 +1054,7 @@ func _divider() -> ColorRect:
 	return div
 
 
-## Gold section header label.
+## Create a gold section header label.
 func _section_header(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
@@ -882,6 +1068,8 @@ func _section_header(text: String) -> Label:
 # ═════════════════════════════════════════════════════════════════════
 #  POPUP SHELL
 # ═════════════════════════════════════════════════════════════════════
+
+## Create a popup panel container with title and content area.
 func _popup_shell(title_text: String) -> PanelContainer:
 	var wrapper := CenterContainer.new()
 	wrapper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -891,24 +1079,34 @@ func _popup_shell(title_text: String) -> PanelContainer:
 	var outer := PanelContainer.new()
 	outer.custom_minimum_size = Vector2(300, 0)
 	var os := StyleBoxFlat.new()
-	os.bg_color = P_FRAME_OUTER; os.border_color = P_FRAME_BORDER
-	os.set_border_width_all(BORDER); os.set_corner_radius_all(CORNER + 1)
-	os.content_margin_left = 4;  os.content_margin_right = 4
-	os.content_margin_top = 4;   os.content_margin_bottom = 4
+	os.bg_color = P_FRAME_OUTER
+	os.border_color = P_FRAME_BORDER
+	os.set_border_width_all(BORDER)
+	os.set_corner_radius_all(CORNER + 1)
+	os.content_margin_left = 4
+	os.content_margin_right = 4
+	os.content_margin_top = 4
+	os.content_margin_bottom = 4
 	outer.add_theme_stylebox_override("panel", os)
 	wrapper.add_child(outer)
 
 	var inner := PanelContainer.new()
+	inner.clip_contents = true
 	var ins := StyleBoxFlat.new()
-	ins.bg_color = P_FRAME_INNER; ins.border_color = Color(P_FRAME_BORDER, 0.5)
-	ins.set_border_width_all(2); ins.set_corner_radius_all(CORNER)
-	ins.content_margin_left = 16; ins.content_margin_right = 16
-	ins.content_margin_top = 12;  ins.content_margin_bottom = 12
+	ins.bg_color = P_FRAME_INNER
+	ins.border_color = Color(P_FRAME_BORDER, 0.5)
+	ins.set_border_width_all(2)
+	ins.set_corner_radius_all(CORNER)
+	ins.content_margin_left = 16
+	ins.content_margin_right = 16
+	ins.content_margin_top = 12
+	ins.content_margin_bottom = 12
 	inner.add_theme_stylebox_override("panel", ins)
 	outer.add_child(inner)
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 4)
+	vbox.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	inner.add_child(vbox)
 
 	var t := Label.new()
@@ -929,6 +1127,8 @@ func _popup_shell(title_text: String) -> PanelContainer:
 # ═════════════════════════════════════════════════════════════════════
 #  POPUP TRANSITIONS
 # ═════════════════════════════════════════════════════════════════════
+
+## Show a popup with fade-in and scale animation.
 func _open_popup(panel: PanelContainer) -> void:
 	popup_active = panel
 	overlay.visible = true
@@ -938,8 +1138,8 @@ func _open_popup(panel: PanelContainer) -> void:
 	panel.pivot_offset = panel.size * 0.5
 
 	var tw := create_tween().set_parallel(true)
-	tw.tween_property(overlay, "modulate:a", 1.0, 0.15)
-	tw.tween_property(panel, "scale", Vector2.ONE, 0.15) \
+	tw.tween_property(overlay, "modulate:a", 1.0, POPUP_FADE_IN_TIME)
+	tw.tween_property(panel, "scale", Vector2.ONE, POPUP_SCALE_IN_TIME) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 	var close_btn = panel.get_meta("close_btn", null)
@@ -947,6 +1147,7 @@ func _open_popup(panel: PanelContainer) -> void:
 		(close_btn as Button).call_deferred("grab_focus")
 
 
+## Hide a popup with fade-out and scale animation.
 func _close_popup(panel: PanelContainer) -> void:
 	popup_active = null
 	if not is_instance_valid(panel):
@@ -955,8 +1156,8 @@ func _close_popup(panel: PanelContainer) -> void:
 			menu_buttons[0].grab_focus()
 		return
 	var tw := create_tween().set_parallel(true)
-	tw.tween_property(overlay, "modulate:a", 0.0, 0.12)
-	tw.tween_property(panel, "scale", Vector2(0.95, 0.95), 0.12).set_ease(Tween.EASE_IN)
+	tw.tween_property(overlay, "modulate:a", 0.0, POPUP_FADE_OUT_TIME)
+	tw.tween_property(panel, "scale", Vector2(0.95, 0.95), POPUP_SCALE_OUT_TIME).set_ease(Tween.EASE_IN)
 	tw.chain().tween_callback(func():
 		overlay.visible = false
 		if is_instance_valid(panel):
@@ -966,50 +1167,178 @@ func _close_popup(panel: PanelContainer) -> void:
 
 
 # ═════════════════════════════════════════════════════════════════════
+#  UNSAVED CHANGES CONFIRMATION
+# ═════════════════════════════════════════════════════════════════════
+
+## Check for unsaved changes before closing settings.  If dirty, show
+## a confirmation dialog; otherwise close immediately.
+func _try_close_settings() -> void:
+	_cancel_rebind()
+	if popup_active != popup_set:
+		_close_popup(popup_active)
+		return
+	if input_mgr.is_dirty():
+		_show_confirm_popup()
+	else:
+		_close_popup(popup_set)
+
+
+## Build and show the "Unsaved changes" confirmation dialog.
+func _show_confirm_popup() -> void:
+	if popup_confirm and is_instance_valid(popup_confirm):
+		popup_confirm.get_parent().queue_free()
+
+	# Build a small centered panel
+	var wrapper := CenterContainer.new()
+	wrapper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	wrapper.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(wrapper)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(240, 0)
+	var ps := StyleBoxFlat.new()
+	ps.bg_color = P_FRAME_INNER
+	ps.border_color = P_FRAME_BORDER
+	ps.set_border_width_all(BORDER)
+	ps.set_corner_radius_all(CORNER + 1)
+	ps.content_margin_left = 18;  ps.content_margin_right = 18
+	ps.content_margin_top = 14;   ps.content_margin_bottom = 14
+	panel.add_theme_stylebox_override("panel", ps)
+	wrapper.add_child(panel)
+
+	var vb := VBoxContainer.new()
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 10)
+	panel.add_child(vb)
+
+	var msg := Label.new()
+	msg.text = "You have unsaved changes."
+	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	msg.autowrap_mode = TextServer.AUTOWRAP_WORD
+	msg.add_theme_font_override("font", font_body)
+	msg.add_theme_font_size_override("font_size", 16)
+	msg.add_theme_color_override("font_color", P_TEXT)
+	vb.add_child(msg)
+
+	var btn_row := HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_row.add_theme_constant_override("separation", 10)
+	vb.add_child(btn_row)
+
+	# "Save & Close" button
+	var save_btn := _make_button("Save", false)
+	save_btn.custom_minimum_size = Vector2(90, 26)
+	save_btn.pressed.connect(func():
+		_play_sfx(sfx_click)
+		input_mgr.save_settings()
+		_close_confirm_popup()
+		_close_popup(popup_set))
+	btn_row.add_child(save_btn)
+
+	# "Discard" button — reverts bindings and rebuilds the settings UI
+	var discard_btn := _make_button("Discard", true)
+	discard_btn.custom_minimum_size = Vector2(90, 26)
+	discard_btn.pressed.connect(func():
+		_play_sfx(sfx_back)
+		input_mgr.load_settings()
+		# Sync audio players to reverted values
+		bgm_player.volume_db = input_mgr.volume_to_db(input_mgr.volume_music)
+		sfx_player.volume_db = input_mgr.sfx_to_db(input_mgr.volume_sfx)
+		_close_confirm_popup()
+		# Tear down and rebuild settings so button labels show reverted bindings
+		popup_active = null
+		overlay.visible = false
+		var old_wrapper := popup_set.get_parent()
+		if old_wrapper:
+			old_wrapper.queue_free()
+		else:
+			popup_set.queue_free()
+		_add_settings()
+		popup_set.visible = false
+		overlay.visible = false
+		# Return focus to main menu
+		if menu_buttons.size() > 0:
+			menu_buttons[0].grab_focus())
+	btn_row.add_child(discard_btn)
+
+	popup_confirm = panel
+
+	# Animate in
+	panel.modulate.a = 0.0
+	panel.scale = Vector2(0.92, 0.92)
+	panel.pivot_offset = panel.size * 0.5
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(panel, "modulate:a", 1.0, POPUP_FADE_IN_TIME)
+	tw.tween_property(panel, "scale", Vector2.ONE, POPUP_SCALE_IN_TIME) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	save_btn.call_deferred("grab_focus")
+
+
+## Dismiss the confirmation dialog without taking action.
+func _close_confirm_popup() -> void:
+	if popup_confirm and is_instance_valid(popup_confirm):
+		var wrapper_node := popup_confirm.get_parent()
+		if wrapper_node:
+			wrapper_node.queue_free()
+	popup_confirm = null
+
+
+# ═════════════════════════════════════════════════════════════════════
 #  ENTRANCE ANIMATION
 # ═════════════════════════════════════════════════════════════════════
+
+## Fade in the main menu on entrance.
 func _entrance_anim() -> void:
 	main_vbox.modulate.a = 0.0
 	var tw := create_tween()
-	tw.tween_property(main_vbox, "modulate:a", 1.0, 0.5) \
+	tw.tween_property(main_vbox, "modulate:a", 1.0, TITLE_FADE_IN_TIME) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 
 
 # ═════════════════════════════════════════════════════════════════════
 #  BUTTON CALLBACKS
 # ═════════════════════════════════════════════════════════════════════
+
+## Start Game button handler — transition to grass biome.
 func _on_start() -> void:
 	_play_sfx(sfx_start)
-	# Fade out BGM
 	var tw := create_tween().set_parallel(true)
-	tw.tween_property(self, "modulate:a", 0.0, 0.4)
-	tw.tween_property(bgm_player, "volume_db", -40.0, 0.4)
+	tw.tween_property(self, "modulate:a", 0.0, START_FADE_OUT_TIME)
+	tw.tween_property(bgm_player, "volume_db", VOLUME_BGM_SILENT, START_FADE_OUT_TIME)
 	tw.chain().tween_callback(func():
-		bgm_player.stop()
+		if is_instance_valid(bgm_player):
+			bgm_player.stop()
 		get_tree().change_scene_to_file("res://Scene/grass_biome.tscn"))
 
 
+## How to Play button handler — show the control popup.
 func _on_how_to_play() -> void:
 	_play_sfx(sfx_click)
 	_open_popup(popup_htp)
 
 
+## Settings button handler — show the settings popup.
 func _on_settings() -> void:
 	_play_sfx(sfx_click)
 	_open_popup(popup_set)
 
 
+## Exit button handler — fade out and quit the game.
 func _on_exit() -> void:
 	_play_sfx(sfx_click)
 	var tw := create_tween().set_parallel(true)
-	tw.tween_property(self, "modulate:a", 0.0, 0.25)
-	tw.tween_property(bgm_player, "volume_db", -40.0, 0.25)
-	tw.chain().tween_callback(func(): get_tree().quit())
+	tw.tween_property(self, "modulate:a", 0.0, EXIT_FADE_OUT_TIME)
+	tw.tween_property(bgm_player, "volume_db", VOLUME_BGM_SILENT, EXIT_FADE_OUT_TIME)
+	tw.chain().tween_callback(func():
+		if is_instance_valid(self):
+			get_tree().quit())
 
 
 # ═════════════════════════════════════════════════════════════════════
 #  HELPERS
 # ═════════════════════════════════════════════════════════════════════
+
+## Create a vertical spacer control for layout padding.
 func _spacer(h: float) -> Control:
 	var s := Control.new()
 	s.custom_minimum_size.y = h

@@ -17,14 +17,15 @@ signal dirty_changed(is_dirty: bool)  # emitted when unsaved-changes flag flips
 
 # ── Settings file path ───────────────────────────────────────────────
 const SAVE_PATH := "user://settings.cfg"
+const SETTINGS_VERSION := 3   # bump when action_defs change to invalidate old saves
 
 # ── Mouse ────────────────────────────────────────────────────────────
 var mouse_sensitivity : float = 1.0    # 0.1 – 3.0
 var mouse_inverted    : bool  = false
 
 # ── Volume (0–100, converted to dB when applied) ────────────────────
-var volume_music : float = 50.0
-var volume_sfx   : float = 50.0
+var volume_music : float = 100.0
+var volume_sfx   : float = 100.0
 
 # ── Dirty flag (unsaved changes) ────────────────────────────────────
 var _dirty : bool = false
@@ -94,6 +95,12 @@ func _define_actions() -> void:
 			"category": "Actions",
 		},
 
+		"interact": {
+			"label": "Interact",
+			"default": _key(KEY_F),
+			"category": "Actions",
+		},
+
 		# ── Utility ─────────────────────────────────────────────
 		"open_map": {
 			"label": "Map",
@@ -103,6 +110,11 @@ func _define_actions() -> void:
 		"mount": {
 			"label": "Mount",
 			"default": _key(KEY_H),
+			"category": "Utility",
+		},
+		"pause": {
+			"label": "Pause / Menu",
+			"default": _key(KEY_ESCAPE),
 			"category": "Utility",
 		},
 	}
@@ -213,7 +225,7 @@ func _event_to_text(ev: InputEvent) -> String:
 
 
 # ═════════════════════════════════════════════════════════════════════
-#  REBIND — change a key at runtime (for future rebind UI)
+#  REBIND — change a key at runtime
 # ═════════════════════════════════════════════════════════════════════
 func rebind_action(action_name: String, new_event: InputEvent) -> void:
 	if not action_defs.has(action_name):
@@ -225,9 +237,17 @@ func rebind_action(action_name: String, new_event: InputEvent) -> void:
 
 
 func reset_to_defaults() -> void:
+	# Reset key bindings
 	_register_actions()
+	# Reset volume
+	volume_music = 100.0
+	volume_sfx   = 100.0
+	# Reset mouse
+	mouse_sensitivity = 1.0
+	mouse_inverted    = false
 	mark_dirty()
 	bindings_changed.emit()
+	settings_changed.emit()
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -246,11 +266,20 @@ func apply_mouse(raw_delta: Vector2) -> Vector2:
 #  VOLUME HELPERS
 # ═════════════════════════════════════════════════════════════════════
 
-## Convert a 0–100 slider value to decibels (muted below 1).
+## Convert a 0–100 music slider value to decibels.
+## 100 → -15 dB (the old 50% level, which sounded right).
 func volume_to_db(percent: float) -> float:
 	if percent <= 0.0:
 		return -80.0
-	return lerp(-30.0, 0.0, percent / 100.0)
+	return lerp(-45.0, -15.0, percent / 100.0)
+
+
+## Convert a 0–100 SFX slider value to decibels (quieter curve).
+## 100 → -20 dB so effects never overpower the music.
+func sfx_to_db(percent: float) -> float:
+	if percent <= 0.0:
+		return -80.0
+	return lerp(-50.0, -20.0, percent / 100.0)
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -258,6 +287,8 @@ func volume_to_db(percent: float) -> float:
 # ═════════════════════════════════════════════════════════════════════
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
+
+	cfg.set_value("meta", "version", SETTINGS_VERSION)
 
 	# Volume
 	cfg.set_value("audio", "music", volume_music)
@@ -294,6 +325,15 @@ func load_settings() -> void:
 	if cfg.load(SAVE_PATH) != OK:
 		# No saved settings yet — revert to defaults
 		reset_to_defaults()
+		clear_dirty()
+		return
+
+	# Discard outdated save files (e.g. actions were added/removed)
+	var file_version : int = cfg.get_value("meta", "version", 0)
+	if file_version < SETTINGS_VERSION:
+		push_warning("Settings version %d < %d — resetting to defaults." % [file_version, SETTINGS_VERSION])
+		reset_to_defaults()
+		save_settings()   # overwrite stale file with fresh defaults
 		clear_dirty()
 		return
 

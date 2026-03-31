@@ -54,6 +54,7 @@ var sparkles   : Array[Dictionary] = []
 var menu_buttons : Array[Button] = []
 var popup_active : PanelContainer = null
 var _dirty_cb    : Callable                # kept so we can disconnect on rebuild
+var _settings_scroll : ScrollContainer     # disable scrolling during rebind
 
 # Autoload reference (resolved at runtime to avoid compile-time errors)
 var input_mgr : Node
@@ -86,12 +87,6 @@ func _ready() -> void:
 	_wire_focus(menu_buttons)
 	_entrance_anim()
 
-	if menu_buttons.size() > 0:
-		menu_buttons[0].call_deferred("grab_focus")
-
-	# Start background music after a short delay
-	bgm_player.call_deferred("play")
-
 
 # ═════════════════════════════════════════════════════════════════════
 #  AUDIO
@@ -104,6 +99,7 @@ func _load_audio() -> void:
 
 	sfx_player = AudioStreamPlayer.new()
 	sfx_player.bus = "Master"
+	sfx_player.volume_db = input_mgr.sfx_to_db(input_mgr.volume_sfx)
 	add_child(sfx_player)
 
 	# BGM — loops seamlessly
@@ -114,7 +110,9 @@ func _load_audio() -> void:
 	bgm_player.stream = bgm_stream
 	add_child(bgm_player)
 	# Loop when finished
-	bgm_player.finished.connect(func(): bgm_player.play())
+	bgm_player.finished.connect(func():
+		if is_instance_valid(bgm_player):
+			bgm_player.play())
 	# Start playing if volume > 0
 	if input_mgr.volume_music > 0:
 		bgm_player.play()
@@ -131,7 +129,7 @@ func _play_sfx(stream: AudioStream) -> void:
 func _add_background() -> void:
 	var bg := ColorRect.new()
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.color = P_BG
+	bg.color = Color(P_BG, 0.55)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 
@@ -314,28 +312,42 @@ func _input(event: InputEvent) -> void:
 	if not visible or _rebind_action == "":
 		return
 
-	# Let Escape cancel the rebind
-	if event is InputEventKey and (event as InputEventKey).physical_keycode == KEY_ESCAPE:
-		_cancel_rebind()
-		_play_sfx(sfx_back)
-		get_viewport().set_input_as_handled()
-		return
+	# Cancel rebind with the pause key or hardcoded Escape (unless rebinding pause)
+	if _rebind_action != "pause" and event is InputEventKey and event.is_pressed():
+		var key := (event as InputEventKey).physical_keycode
+		if key == KEY_NONE:
+			key = (event as InputEventKey).keycode
+		var is_cancel := (key == KEY_ESCAPE)
+		if not is_cancel and InputMap.has_action("pause"):
+			is_cancel = InputMap.event_is_action(event, "pause")
+		if is_cancel:
+			_cancel_rebind()
+			_play_sfx(sfx_back)
+			get_viewport().set_input_as_handled()
+			return
 
-	# Accept key presses or mouse button presses
+	# Accept key presses or mouse button presses (ignore scroll wheel)
 	var accepted := false
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		input_mgr.rebind_action(_rebind_action, event)
 		accepted = true
 	elif event is InputEventMouseButton and event.is_pressed():
-		input_mgr.rebind_action(_rebind_action, event)
-		accepted = true
+		var mb := (event as InputEventMouseButton).button_index
+		if mb != MOUSE_BUTTON_WHEEL_UP and mb != MOUSE_BUTTON_WHEEL_DOWN \
+				and mb != MOUSE_BUTTON_WHEEL_LEFT and mb != MOUSE_BUTTON_WHEEL_RIGHT:
+			input_mgr.rebind_action(_rebind_action, event)
+			accepted = true
 
 	if accepted:
 		if is_instance_valid(_rebind_btn):
 			_rebind_btn.text = input_mgr.get_binding_text(_rebind_action)
+			_rebind_btn.add_theme_color_override("font_color", P_GOLD)
 		_play_sfx(sfx_click)
 		_rebind_action = ""
 		_rebind_btn = null
+		# Restore scrolling
+		if is_instance_valid(_settings_scroll):
+			_settings_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 		get_viewport().set_input_as_handled()
 	else:
 		# Swallow everything while in rebind mode so clicks don't hit UI
@@ -453,10 +465,12 @@ func _make_button(label_text: String, is_exit: bool) -> Button:
 
 	# Mouse hover → sync with keyboard focus + SFX + scale
 	btn.mouse_entered.connect(func():
+		if not is_instance_valid(btn): return
 		btn.grab_focus()
 		btn.pivot_offset = btn.size * 0.5
 		create_tween().tween_property(btn, "scale", Vector2(1.04, 1.04), 0.08))
 	btn.mouse_exited.connect(func():
+		if not is_instance_valid(btn): return
 		btn.pivot_offset = btn.size * 0.5
 		create_tween().tween_property(btn, "scale", Vector2.ONE, 0.08))
 	# Click SFX is connected per-button in _add_main_menu callbacks
@@ -482,11 +496,20 @@ func _add_how_to_play() -> void:
 	popup_htp = _popup_shell("How to Play")
 	var box : VBoxContainer = popup_htp.get_meta("content")
 
+	var im_ref := input_mgr
 	var controls := [
-		["W A S D", "Move in all directions"],
-		["SPACE", "Dodge roll"],
-		["L-CLICK", "Shoot your bow"],
-		["MOUSE", "Change aim direction"],
+		["%s %s %s %s" % [
+			str(im_ref.get_binding_text("move_up")),
+			str(im_ref.get_binding_text("move_left")),
+			str(im_ref.get_binding_text("move_down")),
+			str(im_ref.get_binding_text("move_right"))],
+			"Move in all directions"],
+		[str(im_ref.get_binding_text("dodge")), "Dodge roll"],
+		[str(im_ref.get_binding_text("basic_attack")), "Basic attack"],
+		[str(im_ref.get_binding_text("heavy_attack")), "Heavy attack"],
+		[str(im_ref.get_binding_text("interact")), "Interact"],
+		[str(im_ref.get_binding_text("jump")), "Jump"],
+		["MOUSE", "Aim direction"],
 	]
 	for c in controls:
 		var row := HBoxContainer.new()
@@ -557,13 +580,14 @@ func _add_settings() -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode  = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	box.add_child(scroll)
+	_settings_scroll = scroll
 
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 4)
 	scroll.add_child(content)
 
-	var im := input_mgr
+	var im := input_mgr  # shorthand alias
 
 	# ── Volume ───────────────────────────────────────────────────
 	content.add_child(_section_header("Volume"))
@@ -581,7 +605,7 @@ func _add_settings() -> void:
 	content.add_child(_make_slider_row("SFX", 0, 100, 5, im.volume_sfx, func(val: float):
 		im.volume_sfx = val
 		im.mark_dirty()
-		sfx_player.volume_db = input_mgr.volume_to_db(val)
+		sfx_player.volume_db = input_mgr.sfx_to_db(val)
 		_play_sfx(sfx_hover)))
 
 	content.add_child(_spacer(6))
@@ -654,6 +678,9 @@ func _add_settings() -> void:
 		im.reset_to_defaults()
 		_play_sfx(sfx_click)
 		_cancel_rebind()
+		# Sync audio players to reset volume
+		bgm_player.volume_db = input_mgr.volume_to_db(im.volume_music)
+		sfx_player.volume_db = input_mgr.sfx_to_db(im.volume_sfx)
 		# Tear down old popup immediately (no tween — it's being replaced)
 		popup_active = null
 		overlay.visible = false
@@ -729,7 +756,9 @@ func _add_settings() -> void:
 func _make_rebind_button(action_name: String) -> Button:
 	var btn := Button.new()
 	btn.text = input_mgr.get_binding_text(action_name)
-	btn.custom_minimum_size = Vector2(72, 22)
+	btn.custom_minimum_size = Vector2(120, 22)
+	btn.clip_text = true
+	btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.add_theme_font_override("font", font_body)
 	btn.add_theme_font_size_override("font_size", 14)
@@ -772,7 +801,15 @@ func _start_rebind(action_name: String, btn: Button) -> void:
 	_cancel_rebind()   # cancel any previous listen
 	_rebind_action = action_name
 	_rebind_btn = btn
-	btn.text = "..."
+	var cancel_key = str(input_mgr.get_binding_text("pause"))
+	if action_name == "pause":
+		btn.text = "Press a key..."
+	else:
+		btn.text = "... %s to cancel" % cancel_key
+	btn.add_theme_color_override("font_color", P_GOLD)
+	# Freeze scrolling so scroll wheel doesn't trigger a rebind
+	if is_instance_valid(_settings_scroll):
+		_settings_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_play_sfx(sfx_click)
 
 
@@ -780,11 +817,12 @@ func _start_rebind(action_name: String, btn: Button) -> void:
 func _cancel_rebind() -> void:
 	if _rebind_btn and is_instance_valid(_rebind_btn) and _rebind_action != "":
 		_rebind_btn.text = input_mgr.get_binding_text(_rebind_action)
+		_rebind_btn.add_theme_color_override("font_color", P_GOLD)
 	_rebind_action = ""
 	_rebind_btn = null
-
-
-## (Rebind intercept is now handled inside _unhandled_input above)
+	# Restore scrolling
+	if is_instance_valid(_settings_scroll):
+		_settings_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 
 
 ## Build a labelled slider row:  "Label  ───●─── 50%"
@@ -838,12 +876,10 @@ func _make_slider_row(label_text: String, min_val: float, max_val: float,
 	row.add_child(pct)
 
 	slider.value_changed.connect(func(val: float):
-		pct.text = "%d%%" % int(val)
+		if is_instance_valid(pct):
+			pct.text = "%d%%" % int(val)
 		on_change.call(val))
 
-	# Sync initial display (update pct label only — don't fire on_change
-	# to avoid marking dirty on popup build)
-	pct.text = "%d%%" % int(initial)
 	return row
 
 
@@ -985,7 +1021,8 @@ func _on_start() -> void:
 	tw.tween_property(self, "modulate:a", 0.0, 0.4)
 	tw.tween_property(bgm_player, "volume_db", -40.0, 0.4)
 	tw.chain().tween_callback(func():
-		bgm_player.stop()
+		if is_instance_valid(bgm_player):
+			bgm_player.stop()
 		get_tree().change_scene_to_file("res://Scene/grass_biome.tscn"))
 
 
@@ -1004,7 +1041,9 @@ func _on_exit() -> void:
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(self, "modulate:a", 0.0, 0.25)
 	tw.tween_property(bgm_player, "volume_db", -40.0, 0.25)
-	tw.chain().tween_callback(func(): get_tree().quit())
+	tw.chain().tween_callback(func():
+		if is_instance_valid(self):
+			get_tree().quit())
 
 
 # ═════════════════════════════════════════════════════════════════════

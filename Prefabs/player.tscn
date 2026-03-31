@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cpbt4eoxba3h"]
 
-[ext_resource type="Script" uid="uid://w5xull7j4m58" path="res://Prefabs/playerController.gd" id="1_3vpsw"]
+[ext_resource type="Script" uid="uid://w5xull7j4m58" path="res://Scripts/playerController.gd" id="1_3vpsw"]
 [ext_resource type="Texture2D" uid="uid://kvdnvqcbkpxr" path="res://Assets/Cute_Fantasy/Player/Player_Base/Player_Base_animations.png" id="1_hck1p"]
 [ext_resource type="Texture2D" uid="uid://b8ut6j2l5joxd" path="res://Assets/Cute_Fantasy/Player/Hands/Hands_1_Bare.png" id="2_juxdh"]
 [ext_resource type="Texture2D" uid="uid://4udo87xifqmw" path="res://Assets/Cute_Fantasy/Player/Head/Hair_1/Hair_1_Black.png" id="3_4qbli"]
@@ -8,10 +8,8 @@
 [ext_resource type="Texture2D" uid="uid://b3xmbub6efgtq" path="res://Assets/Cute_Fantasy/Player/Legs/OG_Pants/Pants_1_Black.png" id="5_kgmex"]
 [ext_resource type="Texture2D" uid="uid://d2m5wbje3vvs8" path="res://Assets/Cute_Fantasy/Player/Feet/Shoes_1_Black.png" id="6_2xbkd"]
 [ext_resource type="Texture2D" uid="uid://ionggfocg5d4" path="res://Assets/Cute_Fantasy/Player/Tools/Iron/Iron_Sword.png" id="7_juxdh"]
-[ext_resource type="Texture2D" uid="uid://b38s7j3n20nvt" path="res://Assets/Cute_Fantasy/Player/Tools/Bow/Wooden_Bow.png" id="8_4qbli"]
 [ext_resource type="Texture2D" uid="uid://dj0qjns5tt8a5" path="res://Assets/Cute_Fantasy/Player/Tools/Iron/Iron_Tools.png" id="9_kgmex"]
 [ext_resource type="Texture2D" uid="uid://bms127adx0r8p" path="res://Assets/Cute_Fantasy/Player/Tools/Fishing_Rod/Wooden_Fishing_Rod.png" id="10_2xbkd"]
-[ext_resource type="Script" uid="uid://ctplv52w6fxvy" path="res://Prefabs/bow.gd" id="10_m62uw"]
 [ext_resource type="Texture2D" uid="uid://bmn2cs8boqclx" path="res://Assets/Cute_Fantasy/Player/Player_Mounts/Horse/Player_Horse_Black.png" id="11_2xbkd"]
 
 [sub_resource type="Animation" id="Animation_3vpsw"]
@@ -233,68 +231,6 @@ tracks/17/keys = {
 "update": 0,
 "values": [false]
 }
-tracks/18/type = "value"
-tracks/18/imported = false
-tracks/18/enabled = true
-tracks/18/path = NodePath("Weapons/Bow:frame")
-tracks/18/interp = 0
-tracks/18/loop_wrap = true
-tracks/18/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
-"update": 0,
-"values": [0, 1, 2, 3, 4, 5]
-}
-tracks/19/type = "value"
-tracks/19/imported = false
-tracks/19/enabled = true
-tracks/19/path = NodePath("Weapons/Bow:flip_h")
-tracks/19/interp = 0
-tracks/19/loop_wrap = true
-tracks/19/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [false]
-}
-tracks/20/type = "value"
-tracks/20/imported = false
-tracks/20/enabled = true
-tracks/20/path = NodePath("Weapons/Bow:flip_v")
-tracks/20/interp = 0
-tracks/20/loop_wrap = true
-tracks/20/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [false]
-}
-tracks/21/type = "value"
-tracks/21/imported = false
-tracks/21/enabled = true
-tracks/21/path = NodePath("Weapons/Bow:z_index")
-tracks/21/interp = 0
-tracks/21/loop_wrap = true
-tracks/21/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [0]
-}
-tracks/22/type = "method"
-tracks/22/imported = false
-tracks/22/enabled = true
-tracks/22/path = NodePath("Weapons/Bow")
-tracks/22/interp = 1
-tracks/22/loop_wrap = true
-tracks/22/keys = {
-"times": PackedFloat32Array(0.3),
-"transitions": PackedFloat32Array(1),
-"values": [{
-"args": [],
-"method": &"shoot"
-}]
-}
 
 [sub_resource type="Animation" id="Animation_m62uw"]
 length = 0.6
@@ -514,68 +450,6 @@ tracks/17/keys = {
 "transitions": PackedFloat32Array(1),
 "update": 0,
 "values": [false]
-}
-tracks/18/type = "value"
-tracks/18/imported = false
-tracks/18/enabled = true
-tracks/18/path = NodePath("Weapons/Bow:frame")
-tracks/18/interp = 0
-tracks/18/loop_wrap = true
-tracks/18/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
-"update": 0,
-"values": [6, 7, 8, 9, 10, 11]
-}
-tracks/19/type = "value"
-tracks/19/imported = false
-tracks/19/enabled = true
-tracks/19/path = NodePath("Weapons/Bow:flip_h")
-tracks/19/interp = 0
-tracks/19/loop_wrap = true
-tracks/19/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [true]
-}
-tracks/20/type = "value"
-tracks/20/imported = false
-tracks/20/enabled = true
-tracks/20/path = NodePath("Weapons/Bow:flip_v")
-tracks/20/interp = 0
-tracks/20/loop_wrap = true
-tracks/20/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [false]
-}
-tracks/21/type = "value"
-tracks/21/imported = false
-tracks/21/enabled = true
-tracks/21/path = NodePath("Weapons/Bow:z_index")
-tracks/21/interp = 0
-tracks/21/loop_wrap = true
-tracks/21/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [0]
-}
-tracks/22/type = "method"
-tracks/22/imported = false
-tracks/22/enabled = true
-tracks/22/path = NodePath("Weapons/Bow")
-tracks/22/interp = 1
-tracks/22/loop_wrap = true
-tracks/22/keys = {
-"times": PackedFloat32Array(0.3),
-"transitions": PackedFloat32Array(1),
-"values": [{
-"args": [],
-"method": &"shoot"
-}]
 }
 
 [sub_resource type="Animation" id="Animation_b30ri"]
@@ -797,68 +671,6 @@ tracks/17/keys = {
 "update": 0,
 "values": [false]
 }
-tracks/18/type = "value"
-tracks/18/imported = false
-tracks/18/enabled = true
-tracks/18/path = NodePath("Weapons/Bow:frame")
-tracks/18/interp = 0
-tracks/18/loop_wrap = true
-tracks/18/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
-"update": 0,
-"values": [6, 7, 8, 9, 10, 11]
-}
-tracks/19/type = "value"
-tracks/19/imported = false
-tracks/19/enabled = true
-tracks/19/path = NodePath("Weapons/Bow:flip_h")
-tracks/19/interp = 0
-tracks/19/loop_wrap = true
-tracks/19/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [false]
-}
-tracks/20/type = "value"
-tracks/20/imported = false
-tracks/20/enabled = true
-tracks/20/path = NodePath("Weapons/Bow:flip_v")
-tracks/20/interp = 0
-tracks/20/loop_wrap = true
-tracks/20/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [false]
-}
-tracks/21/type = "value"
-tracks/21/imported = false
-tracks/21/enabled = true
-tracks/21/path = NodePath("Weapons/Bow:z_index")
-tracks/21/interp = 0
-tracks/21/loop_wrap = true
-tracks/21/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [0]
-}
-tracks/22/type = "method"
-tracks/22/imported = false
-tracks/22/enabled = true
-tracks/22/path = NodePath("Weapons/Bow")
-tracks/22/interp = 1
-tracks/22/loop_wrap = true
-tracks/22/keys = {
-"times": PackedFloat32Array(0.3),
-"transitions": PackedFloat32Array(1),
-"values": [{
-"args": [],
-"method": &"shoot"
-}]
-}
 
 [sub_resource type="Animation" id="Animation_ms580"]
 length = 0.6
@@ -1078,68 +890,6 @@ tracks/17/keys = {
 "transitions": PackedFloat32Array(1),
 "update": 0,
 "values": [false]
-}
-tracks/18/type = "value"
-tracks/18/imported = false
-tracks/18/enabled = true
-tracks/18/path = NodePath("Weapons/Bow:frame")
-tracks/18/interp = 0
-tracks/18/loop_wrap = true
-tracks/18/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
-"update": 0,
-"values": [12, 13, 14, 15, 16, 17]
-}
-tracks/19/type = "value"
-tracks/19/imported = false
-tracks/19/enabled = true
-tracks/19/path = NodePath("Weapons/Bow:flip_h")
-tracks/19/interp = 0
-tracks/19/loop_wrap = true
-tracks/19/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [false]
-}
-tracks/20/type = "value"
-tracks/20/imported = false
-tracks/20/enabled = true
-tracks/20/path = NodePath("Weapons/Bow:flip_v")
-tracks/20/interp = 0
-tracks/20/loop_wrap = true
-tracks/20/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [false]
-}
-tracks/21/type = "value"
-tracks/21/imported = false
-tracks/21/enabled = true
-tracks/21/path = NodePath("Weapons/Bow:z_index")
-tracks/21/interp = 0
-tracks/21/loop_wrap = true
-tracks/21/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [-1]
-}
-tracks/22/type = "method"
-tracks/22/imported = false
-tracks/22/enabled = true
-tracks/22/path = NodePath("Weapons/Bow")
-tracks/22/interp = 1
-tracks/22/loop_wrap = true
-tracks/22/keys = {
-"times": PackedFloat32Array(0.3),
-"transitions": PackedFloat32Array(1),
-"values": [{
-"args": [],
-"method": &"shoot"
-}]
 }
 
 [sub_resource type="Animation" id="Animation_q7l0e"]
@@ -18420,14 +18170,6 @@ shape = SubResource("RectangleShape2D_wphcr")
 [node name="HitboxUp2" type="CollisionShape2D" parent="Weapons/Sword/Hitbox/HitboxUp" unique_id=336593622]
 position = Vector2(5.5, -5)
 shape = SubResource("RectangleShape2D_405c5")
-
-[node name="Bow" type="Sprite2D" parent="Weapons" unique_id=2022205799]
-texture_filter = 1
-texture = ExtResource("8_4qbli")
-hframes = 6
-vframes = 3
-frame = 6
-script = ExtResource("10_m62uw")
 
 [node name="Tools" type="Sprite2D" parent="Weapons" unique_id=1509320704]
 visible = false

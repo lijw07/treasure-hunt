@@ -778,6 +778,10 @@ func _add_settings() -> void:
 
 		content.add_child(_spacer(4))
 
+	# ── Buttons pinned below the scroll area (always visible) ──
+
+	box.add_child(_spacer(6))
+
 	# Reset to defaults button
 	var reset_btn := _make_button("Reset Defaults", true)
 	reset_btn.custom_minimum_size = Vector2(160, 26)
@@ -815,9 +819,9 @@ func _add_settings() -> void:
 		reset_btn.grab_focus())
 	var rc := CenterContainer.new()
 	rc.add_child(reset_btn)
-	content.add_child(rc)
+	box.add_child(rc)
 
-	content.add_child(_spacer(6))
+	box.add_child(_spacer(6))
 
 	# Save and Back buttons
 	var btn_row := HBoxContainer.new()
@@ -862,7 +866,7 @@ func _add_settings() -> void:
 
 	var cc := CenterContainer.new()
 	cc.add_child(btn_row)
-	content.add_child(cc)
+	box.add_child(cc)
 	popup_set.set_meta("close_btn", back_btn)
 
 	# Clear dirty state from initialization
@@ -1308,7 +1312,7 @@ func _on_start() -> void:
 	tw.chain().tween_callback(func():
 		if is_instance_valid(bgm_player):
 			bgm_player.stop()
-		get_tree().change_scene_to_file("res://Scene/grass_biome.tscn"))
+		get_tree().change_scene_to_file("res://Scenes/world.tscn"))
 
 
 ## How to Play button handler — show the control popup.

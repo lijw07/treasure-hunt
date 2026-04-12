@@ -108,10 +108,10 @@ const WORLD_Y_MAX   := 85.0
 
 # ── Scene paths for child identification ────────────────────────────
 
-const _SCENE_OAK   := "res://Prefabs/Tree/OakTree.tscn"
-const _SCENE_ROCK  := "res://Prefabs/RockAnimation/animated_sprite_2d.tscn"
-const _SCENE_GRASS2 := "res://Prefabs/GrassAnimation/GrassAnimation2.tscn"
-const _SCENE_GRASS3 := "res://Prefabs/GrassAnimation/GrassAnimation3.tscn"
+const _SCENE_OAK   := "res://Prefabs/Environment/Tree/OakTree.tscn"
+const _SCENE_ROCK  := "res://Prefabs/Environment/RockAnimation/animated_sprite_2d.tscn"
+const _SCENE_GRASS2 := "res://Prefabs/Environment/GrassAnimation/GrassAnimation2.tscn"
+const _SCENE_GRASS3 := "res://Prefabs/Environment/GrassAnimation/GrassAnimation3.tscn"
 
 
 # ── Runtime state ───────────────────────────────────────────────────

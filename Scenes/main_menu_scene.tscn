@@ -1,12 +1,12 @@
 [gd_scene format=3 uid="uid://b21aekkqhj6rf"]
 
-[ext_resource type="PackedScene" uid="uid://b0mfkpbnqy7ea" path="res://Scene/grass_biome.tscn" id="1_aplkj"]
-[ext_resource type="PackedScene" uid="uid://cta6orujfr7k5" path="res://Prefabs/GrassAnimation/GrassAnimation2.tscn" id="2_dpyas"]
-[ext_resource type="PackedScene" uid="uid://b7c8j36rx7ljs" path="res://Prefabs/RockAnimation/animated_sprite_2d.tscn" id="2_x4ueo"]
-[ext_resource type="PackedScene" uid="uid://btcodfmj3n8w" path="res://Prefabs/GrassAnimation/GrassAnimation3.tscn" id="3_l2h1x"]
-[ext_resource type="PackedScene" uid="uid://rewwdwvjegp1" path="res://Prefabs/Tree/OakTree.tscn" id="4_l2h1x"]
-[ext_resource type="PackedScene" path="res://Scene/start_menu.tscn" id="5_ui"]
-[ext_resource type="Script" path="res://Scripts/main_menu_scene.gd" id="6_script"]
+[ext_resource type="PackedScene" uid="uid://b0mfkpbnqy7ea" path="res://Scenes/grass_biome.tscn" id="1_aplkj"]
+[ext_resource type="PackedScene" uid="uid://cta6orujfr7k5" path="res://Prefabs/Environment/GrassAnimation/GrassAnimation2.tscn" id="2_dpyas"]
+[ext_resource type="PackedScene" uid="uid://b7c8j36rx7ljs" path="res://Prefabs/Environment/RockAnimation/animated_sprite_2d.tscn" id="2_x4ueo"]
+[ext_resource type="PackedScene" uid="uid://btcodfmj3n8w" path="res://Prefabs/Environment/GrassAnimation/GrassAnimation3.tscn" id="3_l2h1x"]
+[ext_resource type="PackedScene" uid="uid://rewwdwvjegp1" path="res://Prefabs/Environment/Tree/OakTree.tscn" id="4_l2h1x"]
+[ext_resource type="PackedScene" path="res://Scenes/start_menu.tscn" id="5_ui"]
+[ext_resource type="Script" path="res://Scripts/UI/main_menu_scene.gd" id="6_script"]
 
 [sub_resource type="Curve2D" id="Curve2D_l2h1x"]
 _data = {

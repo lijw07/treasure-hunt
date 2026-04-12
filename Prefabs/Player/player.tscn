@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cpbt4eoxba3h"]
 
-[ext_resource type="Script" uid="uid://w5xull7j4m58" path="res://Scripts/playerController.gd" id="1_3vpsw"]
+[ext_resource type="Script" uid="uid://w5xull7j4m58" path="res://Scripts/Player/playerController.gd" id="1_3vpsw"]
 [ext_resource type="Texture2D" uid="uid://kvdnvqcbkpxr" path="res://Assets/Cute_Fantasy/Player/Player_Base/Player_Base_animations.png" id="1_hck1p"]
 [ext_resource type="Texture2D" uid="uid://b8ut6j2l5joxd" path="res://Assets/Cute_Fantasy/Player/Hands/Hands_1_Bare.png" id="2_juxdh"]
 [ext_resource type="Texture2D" uid="uid://4udo87xifqmw" path="res://Assets/Cute_Fantasy/Player/Head/Hair_1/Hair_1_Black.png" id="3_4qbli"]
@@ -10,7 +10,10 @@
 [ext_resource type="Texture2D" uid="uid://ionggfocg5d4" path="res://Assets/Cute_Fantasy/Player/Tools/Iron/Iron_Sword.png" id="7_juxdh"]
 [ext_resource type="Texture2D" uid="uid://dj0qjns5tt8a5" path="res://Assets/Cute_Fantasy/Player/Tools/Iron/Iron_Tools.png" id="9_kgmex"]
 [ext_resource type="Texture2D" uid="uid://bms127adx0r8p" path="res://Assets/Cute_Fantasy/Player/Tools/Fishing_Rod/Wooden_Fishing_Rod.png" id="10_2xbkd"]
+[ext_resource type="PackedScene" uid="uid://bulwft0c2d783" path="res://Prefabs/Weapons/arrow.tscn" id="10_7m7dm"]
 [ext_resource type="Texture2D" uid="uid://bmn2cs8boqclx" path="res://Assets/Cute_Fantasy/Player/Player_Mounts/Horse/Player_Horse_Black.png" id="11_2xbkd"]
+[ext_resource type="Script" uid="uid://bj3tbtxmflhtc" path="res://Scripts/Player/playerAnimation.gd" id="12_anim"]
+[ext_resource type="Script" uid="uid://c7rrvbx1m172j" path="res://Scripts/Weapons/bow.gd" id="13_bow"]
 
 [sub_resource type="Animation" id="Animation_3vpsw"]
 length = 0.6
@@ -15084,7 +15087,7 @@ tracks/21/keys = {
 "values": [-1]
 }
 
-[sub_resource type="Animation" id="Animation_35hf2"]
+[sub_resource type="Animation" id="Animation_35yd6"]
 length = 0.6
 loop_mode = 1
 tracks/0/type = "value"
@@ -15097,7 +15100,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [45, 46, 47, 48, 49, 50]
+"values": [27, 28, 29, 30, 31, 32]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
@@ -15133,7 +15136,7 @@ tracks/3/keys = {
 "times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [45, 46, 47, 48, 49, 50]
+"values": [27, 28, 29, 30, 31, 32]
 }
 tracks/4/type = "value"
 tracks/4/imported = false
@@ -15169,7 +15172,7 @@ tracks/6/keys = {
 "times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [45, 46, 47, 48, 49, 50]
+"values": [27, 28, 29, 30, 31, 32]
 }
 tracks/7/type = "value"
 tracks/7/imported = false
@@ -15205,7 +15208,7 @@ tracks/9/keys = {
 "times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [45, 46, 47, 48, 49, 50]
+"values": [27, 28, 29, 30, 31, 32]
 }
 tracks/10/type = "value"
 tracks/10/imported = false
@@ -15241,7 +15244,7 @@ tracks/12/keys = {
 "times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [45, 46, 47, 48, 49, 50]
+"values": [27, 28, 29, 30, 31, 32]
 }
 tracks/13/type = "value"
 tracks/13/imported = false
@@ -15277,7 +15280,7 @@ tracks/15/keys = {
 "times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [45, 46, 47, 48, 49, 50]
+"values": [27, 28, 29, 30, 31, 32]
 }
 tracks/16/type = "value"
 tracks/16/imported = false
@@ -17664,7 +17667,7 @@ tracks/17/keys = {
 "values": [false]
 }
 
-[sub_resource type="Animation" id="Animation_35yd6"]
+[sub_resource type="Animation" id="Animation_35hf2"]
 length = 0.6
 loop_mode = 1
 tracks/0/type = "value"
@@ -17677,7 +17680,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [27, 28, 29, 30, 31, 32]
+"values": [45, 46, 47, 48, 49, 50]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
@@ -17713,7 +17716,7 @@ tracks/3/keys = {
 "times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [27, 28, 29, 30, 31, 32]
+"values": [45, 46, 47, 48, 49, 50]
 }
 tracks/4/type = "value"
 tracks/4/imported = false
@@ -17749,7 +17752,7 @@ tracks/6/keys = {
 "times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [27, 28, 29, 30, 31, 32]
+"values": [45, 46, 47, 48, 49, 50]
 }
 tracks/7/type = "value"
 tracks/7/imported = false
@@ -17785,7 +17788,7 @@ tracks/9/keys = {
 "times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [27, 28, 29, 30, 31, 32]
+"values": [45, 46, 47, 48, 49, 50]
 }
 tracks/10/type = "value"
 tracks/10/imported = false
@@ -17821,7 +17824,7 @@ tracks/12/keys = {
 "times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [27, 28, 29, 30, 31, 32]
+"values": [45, 46, 47, 48, 49, 50]
 }
 tracks/13/type = "value"
 tracks/13/imported = false
@@ -17857,7 +17860,7 @@ tracks/15/keys = {
 "times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [27, 28, 29, 30, 31, 32]
+"values": [45, 46, 47, 48, 49, 50]
 }
 tracks/16/type = "value"
 tracks/16/imported = false
@@ -17946,7 +17949,7 @@ _data = {
 &"tool_watercan_left": SubResource("Animation_p248x"),
 &"tool_watercan_right": SubResource("Animation_rlild"),
 &"tool_watercan_up": SubResource("Animation_cqtoq"),
-&"walk_down": SubResource("Animation_35hf2"),
+&"walk_down": SubResource("Animation_35yd6"),
 &"walk_hold_down": SubResource("Animation_i3a4b"),
 &"walk_hold_left": SubResource("Animation_i5nxq"),
 &"walk_hold_right": SubResource("Animation_guy6h"),
@@ -17961,7 +17964,7 @@ _data = {
 &"walk_mount_right": SubResource("Animation_mctfx"),
 &"walk_mount_up": SubResource("Animation_eep8d"),
 &"walk_right": SubResource("Animation_4u0y3"),
-&"walk_up": SubResource("Animation_35yd6")
+&"walk_up": SubResource("Animation_35hf2")
 }
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_3vpsw"]
@@ -18065,51 +18068,53 @@ size = Vector2(9, 6)
 
 [node name="Player" type="CharacterBody2D" unique_id=1916979783]
 texture_filter = 1
+collision_mask = 14
 script = ExtResource("1_3vpsw")
 
 [node name="Character" type="Node2D" parent="." unique_id=1866958140]
+script = ExtResource("12_anim")
 
 [node name="Body" type="Sprite2D" parent="Character" unique_id=693331304]
 texture_filter = 1
 texture = ExtResource("1_hck1p")
 hframes = 9
 vframes = 56
-frame = 270
+frame = 54
 
 [node name="Hand" type="Sprite2D" parent="Character" unique_id=1604769681]
 texture_filter = 1
 texture = ExtResource("2_juxdh")
 hframes = 9
 vframes = 56
-frame = 270
+frame = 54
 
 [node name="Head" type="Sprite2D" parent="Character" unique_id=212397481]
 texture_filter = 1
 texture = ExtResource("3_4qbli")
 hframes = 9
 vframes = 56
-frame = 270
+frame = 54
 
 [node name="Chest" type="Sprite2D" parent="Character" unique_id=411928139]
 texture_filter = 1
 texture = ExtResource("4_08u7w")
 hframes = 9
 vframes = 56
-frame = 270
+frame = 54
 
 [node name="Leg" type="Sprite2D" parent="Character" unique_id=2045293399]
 texture_filter = 1
 texture = ExtResource("5_kgmex")
 hframes = 9
 vframes = 56
-frame = 270
+frame = 54
 
 [node name="Feet" type="Sprite2D" parent="Character" unique_id=1901480609]
 texture_filter = 1
 texture = ExtResource("6_2xbkd")
 hframes = 9
 vframes = 56
-frame = 270
+frame = 54
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="Character" unique_id=484241764]
 root_node = NodePath("../..")
@@ -18117,18 +18122,22 @@ libraries/ = SubResource("AnimationLibrary_wphcr")
 
 [node name="Weapons" type="Node2D" parent="." unique_id=1322793251]
 
+[node name="Bow" type="Node2D" parent="Weapons" unique_id=1024705512]
+script = ExtResource("13_bow")
+arrow_scene = ExtResource("10_7m7dm")
+
 [node name="Sword" type="Sprite2D" parent="Weapons" unique_id=194779979]
-visible = false
 texture_filter = 1
 texture = ExtResource("7_juxdh")
 hframes = 4
 vframes = 9
-frame = 32
 
 [node name="Hitbox" type="Node2D" parent="Weapons/Sword" unique_id=297385901]
 
 [node name="HitboxDown" type="Area2D" parent="Weapons/Sword/Hitbox" unique_id=2101595547]
 visible = false
+collision_layer = 16
+collision_mask = 130
 
 [node name="HitboxDown1" type="CollisionShape2D" parent="Weapons/Sword/Hitbox/HitboxDown" unique_id=1574722016]
 position = Vector2(0, 8.5)
@@ -18140,6 +18149,8 @@ shape = SubResource("RectangleShape2D_m62uw")
 
 [node name="HitboxRight" type="Area2D" parent="Weapons/Sword/Hitbox" unique_id=143584733]
 visible = false
+collision_layer = 16
+collision_mask = 130
 
 [node name="HitboxRight1" type="CollisionShape2D" parent="Weapons/Sword/Hitbox/HitboxRight" unique_id=994721309]
 position = Vector2(2.5, 5)
@@ -18151,6 +18162,8 @@ shape = SubResource("RectangleShape2D_ms580")
 
 [node name="HitboxLeft" type="Area2D" parent="Weapons/Sword/Hitbox" unique_id=1581217065]
 visible = false
+collision_layer = 16
+collision_mask = 130
 
 [node name="HitboxLeft1" type="CollisionShape2D" parent="Weapons/Sword/Hitbox/HitboxLeft" unique_id=692957224]
 position = Vector2(-1, 5)
@@ -18162,6 +18175,8 @@ shape = SubResource("RectangleShape2D_0fs2y")
 
 [node name="HitboxUp" type="Area2D" parent="Weapons/Sword/Hitbox" unique_id=1849471348]
 visible = false
+collision_layer = 16
+collision_mask = 130
 
 [node name="HitboxUp1" type="CollisionShape2D" parent="Weapons/Sword/Hitbox/HitboxUp" unique_id=1365729643]
 position = Vector2(0, -1.5)
@@ -18182,6 +18197,8 @@ frame = 71
 
 [node name="AxeHitbox" type="Area2D" parent="Weapons/Tools" unique_id=1315201351]
 visible = false
+collision_layer = 16
+collision_mask = 130
 
 [node name="HitboxDown" type="CollisionShape2D" parent="Weapons/Tools/AxeHitbox" unique_id=153272690]
 position = Vector2(-0.5, 14)
@@ -18201,6 +18218,8 @@ shape = SubResource("RectangleShape2D_unxwf")
 
 [node name="PickaxeHitbox" type="Area2D" parent="Weapons/Tools" unique_id=1833965816]
 visible = false
+collision_layer = 16
+collision_mask = 130
 
 [node name="HitboxDown" type="CollisionShape2D" parent="Weapons/Tools/PickaxeHitbox" unique_id=1753813318]
 position = Vector2(-2.5, 10.5)
@@ -18220,6 +18239,8 @@ shape = SubResource("RectangleShape2D_7c0pg")
 
 [node name="HoeHitbox" type="Area2D" parent="Weapons/Tools" unique_id=562003295]
 visible = false
+collision_layer = 16
+collision_mask = 130
 
 [node name="HitboxDown" type="CollisionShape2D" parent="Weapons/Tools/HoeHitbox" unique_id=1926335951]
 position = Vector2(-2.5, 10.5)
@@ -18239,6 +18260,8 @@ shape = SubResource("RectangleShape2D_bvach")
 
 [node name="WaterCanHitbox" type="Area2D" parent="Weapons/Tools" unique_id=112744099]
 visible = false
+collision_layer = 16
+collision_mask = 130
 
 [node name="HitboxDown" type="CollisionShape2D" parent="Weapons/Tools/WaterCanHitbox" unique_id=1905333464]
 position = Vector2(-1.5, 9.5)
@@ -18265,6 +18288,8 @@ vframes = 6
 frame = 25
 
 [node name="Hitbox" type="Area2D" parent="Weapons/FishingRod" unique_id=1980690682]
+collision_layer = 16
+collision_mask = 130
 
 [node name="HitboxDown" type="CollisionShape2D" parent="Weapons/FishingRod/Hitbox" unique_id=303980690]
 position = Vector2(2, 26)
@@ -18318,3 +18343,8 @@ shape = SubResource("RectangleShape2D_acf7d")
 visible = false
 position = Vector2(-0.5, 4)
 shape = SubResource("RectangleShape2D_and0b")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=850441120]
+zoom = Vector2(3, 3)
+position_smoothing_enabled = true
+position_smoothing_speed = 10.0

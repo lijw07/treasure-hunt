@@ -6,6 +6,8 @@
 size = Vector2(13, 3)
 
 [node name="Arrow" type="Area2D" unique_id=832637062]
+collision_layer = 64
+collision_mask = 10
 
 [node name="arrow" type="Sprite2D" parent="." unique_id=1651089370]
 texture_filter = 1

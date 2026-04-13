@@ -1,0 +1,43 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/Cute_Fantasy/Outdoor decoration/Ores.png" id="1_ores"]
+[ext_resource type="Script" path="res://Scripts/Environment/resource_node.gd" id="2_resnode"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ore"]
+size = Vector2(12, 10)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nugget"]
+atlas = ExtResource("1_ores")
+region = Rect2(96, 32, 16, 16)
+
+[node name="GoldOre" type="StaticBody2D"]
+y_sort_enabled = true
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("2_resnode")
+resource_type = "rock"
+ore_type = "gold"
+health = 4
+max_health = 4
+drop_count = 2
+particle_color = Color(0.95, 0.8, 0.3, 1.0)
+drop_texture = SubResource("AtlasTexture_nugget")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("1_ores")
+hframes = 8
+vframes = 8
+frame = 17
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 2)
+shape = SubResource("RectangleShape2D_ore")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 2
+collision_mask = 16
+
+[node name="HurtboxShape" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, 2)
+shape = SubResource("RectangleShape2D_ore")

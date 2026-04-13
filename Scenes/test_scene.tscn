@@ -3,13 +3,91 @@
 [ext_resource type="PackedScene" uid="uid://b0mfkpbnqy7ea" path="res://Scenes/grass_biome.tscn" id="1_ground"]
 [ext_resource type="PackedScene" uid="uid://cpbt4eoxba3h" path="res://Prefabs/Player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dtoolbar001" path="res://Scenes/toolbar.tscn" id="3_toolbar"]
+[ext_resource type="PackedScene" path="res://Prefabs/Environment/Ores/amber_ore.tscn" id="4_bwjpn"]
+[ext_resource type="PackedScene" path="res://Prefabs/Environment/Ores/amethyst_ore.tscn" id="5_ibmi3"]
+[ext_resource type="PackedScene" path="res://Prefabs/Environment/Ores/copper_ore.tscn" id="6_4blnk"]
+[ext_resource type="PackedScene" path="res://Prefabs/Environment/Ores/emerald_ore.tscn" id="7_tnimv"]
+[ext_resource type="PackedScene" path="res://Prefabs/Environment/Ores/gold_ore.tscn" id="8_4qg1e"]
+[ext_resource type="PackedScene" path="res://Prefabs/Environment/Ores/iron_ore.tscn" id="9_040rt"]
+[ext_resource type="PackedScene" path="res://Prefabs/Environment/Ores/ruby_ore.tscn" id="10_dhrl2"]
+[ext_resource type="PackedScene" path="res://Prefabs/Environment/Ores/sapphire_ore.tscn" id="11_i0miu"]
+[ext_resource type="PackedScene" path="res://Prefabs/Animals/Pig.tscn" id="14_733rx"]
+[ext_resource type="PackedScene" path="res://Prefabs/Animals/Sheep.tscn" id="15_kmsc6"]
+[ext_resource type="PackedScene" path="res://Prefabs/Animals/Mouse.tscn" id="16_ajhoy"]
+[ext_resource type="PackedScene" path="res://Prefabs/Animals/Horse.tscn" id="17_68bto"]
+[ext_resource type="PackedScene" path="res://Prefabs/Animals/Goose.tscn" id="18_bbo1y"]
+[ext_resource type="PackedScene" path="res://Prefabs/Animals/Frog.tscn" id="19_t5jks"]
+[ext_resource type="PackedScene" path="res://Prefabs/Animals/Duck.tscn" id="20_6lcgy"]
+[ext_resource type="PackedScene" path="res://Prefabs/Animals/Cow.tscn" id="21_nr7vh"]
+[ext_resource type="PackedScene" path="res://Prefabs/Animals/Bee.tscn" id="21_soh27"]
+[ext_resource type="PackedScene" uid="uid://c1u6crbkfw1v" path="res://Prefabs/Animals/Butterfly.tscn" id="22_733rx"]
+[ext_resource type="PackedScene" path="res://Prefabs/Animals/Chicken.tscn" id="22_gfwg5"]
 
 [node name="TestScene" type="Node2D" unique_id=1147789957]
+y_sort_enabled = true
 
 [node name="Ground" parent="." unique_id=144264740 instance=ExtResource("1_ground")]
+z_index = -1
 
 [node name="Environment" type="Node2D" parent="." unique_id=1412599087]
 
 [node name="Player" parent="." unique_id=710873196 instance=ExtResource("2_player")]
 
 [node name="Toolbar" parent="." unique_id=507101024 instance=ExtResource("3_toolbar")]
+
+[node name="AmberOre" parent="." unique_id=1192112760 instance=ExtResource("4_bwjpn")]
+position = Vector2(-58, -16)
+
+[node name="AmethystOre" parent="." unique_id=166406083 instance=ExtResource("5_ibmi3")]
+position = Vector2(-21, 24)
+
+[node name="CopperOre" parent="." unique_id=1252730528 instance=ExtResource("6_4blnk")]
+position = Vector2(27, 35)
+
+[node name="EmeraldOre" parent="." unique_id=2118706466 instance=ExtResource("7_tnimv")]
+position = Vector2(-47, -70)
+
+[node name="GoldOre" parent="." unique_id=373844878 instance=ExtResource("8_4qg1e")]
+position = Vector2(-5, -72)
+
+[node name="IronOre" parent="." unique_id=678683631 instance=ExtResource("9_040rt")]
+position = Vector2(35, -63)
+
+[node name="RubyOre" parent="." unique_id=2022294559 instance=ExtResource("10_dhrl2")]
+position = Vector2(74, -35)
+
+[node name="SapphireOre" parent="." unique_id=1127800580 instance=ExtResource("11_i0miu")]
+position = Vector2(83, -1)
+
+[node name="Bee" parent="." unique_id=1309827361 instance=ExtResource("21_soh27")]
+position = Vector2(-43, -53)
+
+[node name="Butterfly" parent="." unique_id=1192726718 instance=ExtResource("22_733rx")]
+position = Vector2(-74, -15)
+
+[node name="Pig" parent="." unique_id=1423304314 instance=ExtResource("14_733rx")]
+position = Vector2(89, -80)
+
+[node name="Sheep" parent="." unique_id=21099115 instance=ExtResource("15_kmsc6")]
+position = Vector2(112, -56)
+
+[node name="Mouse" parent="." unique_id=1535940225 instance=ExtResource("16_ajhoy")]
+position = Vector2(114, -11)
+
+[node name="Horse" parent="." unique_id=296307153 instance=ExtResource("17_68bto")]
+position = Vector2(39, -40)
+
+[node name="Goose" parent="." unique_id=1285532945 instance=ExtResource("18_bbo1y")]
+position = Vector2(7, -105)
+
+[node name="Frog" parent="." unique_id=43932209 instance=ExtResource("19_t5jks")]
+position = Vector2(40, -91)
+
+[node name="Duck" parent="." unique_id=1556548121 instance=ExtResource("20_6lcgy")]
+position = Vector2(-31, -9)
+
+[node name="Cow" parent="." unique_id=366273662 instance=ExtResource("21_nr7vh")]
+position = Vector2(119, 25)
+
+[node name="Chicken" parent="." unique_id=1092671956 instance=ExtResource("22_gfwg5")]
+position = Vector2(-91, -95)

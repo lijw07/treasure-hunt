@@ -1,0 +1,169 @@
+[gd_scene format=3 uid="uid://c1u6crbkfw1v"]
+
+[ext_resource type="Texture2D" uid="uid://ebrr2cdwxrfg" path="res://Assets/Cute_Fantasy/Animals/Butterfly/Butterfly.png" id="1_tex"]
+[ext_resource type="Script" uid="uid://cwewa2mnvv3pw" path="res://Scripts/Animals/flying_animal.gd" id="2_script"]
+
+[sub_resource type="Animation" id="Animation_fly_blue"]
+length = 0.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite:frame")
+tracks/0/interp = 0
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0, 1]
+}
+
+[sub_resource type="Animation" id="Animation_fly_green"]
+length = 0.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite:frame")
+tracks/0/interp = 0
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [2, 3]
+}
+
+[sub_resource type="Animation" id="Animation_fly_yellow"]
+length = 0.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite:frame")
+tracks/0/interp = 0
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [4, 5]
+}
+
+[sub_resource type="Animation" id="Animation_fly_red"]
+length = 0.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite:frame")
+tracks/0/interp = 0
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [6, 7]
+}
+
+[sub_resource type="Animation" id="Animation_fly_purple"]
+length = 0.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite:frame")
+tracks/0/interp = 0
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [8, 9]
+}
+
+[sub_resource type="Animation" id="Animation_fly_brown"]
+length = 0.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite:frame")
+tracks/0/interp = 0
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [10, 11]
+}
+
+[sub_resource type="Animation" id="Animation_fly_orange"]
+length = 0.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite:frame")
+tracks/0/interp = 0
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [12, 13]
+}
+
+[sub_resource type="Animation" id="Animation_fly_teal"]
+length = 0.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite:frame")
+tracks/0/interp = 0
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [14, 15]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_da6b5"]
+_data = {
+&"fly_blue": SubResource("Animation_fly_blue"),
+&"fly_green": SubResource("Animation_fly_green"),
+&"fly_yellow": SubResource("Animation_fly_yellow"),
+&"fly_red": SubResource("Animation_fly_red"),
+&"fly_purple": SubResource("Animation_fly_purple"),
+&"fly_brown": SubResource("Animation_fly_brown"),
+&"fly_orange": SubResource("Animation_fly_orange"),
+&"fly_teal": SubResource("Animation_fly_teal")
+}
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_63ace"]
+radius = 4.0
+
+[node name="Butterfly" type="CharacterBody2D" unique_id=1935661832]
+collision_layer = 0
+collision_mask = 6
+script = ExtResource("2_script")
+move_speed = 10.0
+hover_amplitude = 4.0
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1727375601]
+texture_filter = 1
+texture = ExtResource("1_tex")
+hframes = 2
+vframes = 8
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1876066562]
+libraries/ = SubResource("AnimationLibrary_da6b5")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1201119349]
+shape = SubResource("CircleShape2D_63ace")
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=1782329223]
+max_distance = 100.0

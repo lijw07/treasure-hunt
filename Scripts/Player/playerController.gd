@@ -32,6 +32,8 @@ var _bow_charging: bool = false
 var _bow_charge_time: float = 0.0
 var _bow_original_char_pos: Vector2 = Vector2.ZERO
 var _bow_original_weap_pos: Vector2 = Vector2.ZERO
+var _fishing_casting: bool = false
+var _fishing_reeling: bool = false
 
 const COMBO_WINDOW: float = 0.4
 const BOW_RELEASE_TIME: float = 0.3
@@ -182,6 +184,8 @@ func _on_damage_taken(_amount: int) -> void:
 func _on_died() -> void:
 	state = State.DEAD
 	velocity = Vector2.ZERO
+	_fishing_casting = false
+	_fishing_reeling = false
 	_set_hit_collision(false)
 	if _character_node:
 		var tw = create_tween()
@@ -468,13 +472,19 @@ func _state_attack(delta: float) -> void:
 	if Input.is_action_just_pressed("basic_attack"):
 		_queued_combo = true
 
-	if not _weapon_hidden_this_swing and _attack_timer <= WEAPON_HIDE_BEFORE_END:
+	if not _weapon_hidden_this_swing and not _fishing_casting and not _fishing_reeling and _attack_timer <= WEAPON_HIDE_BEFORE_END:
 		_hide_all_weapons()
 		_weapon_hidden_this_swing = true
 		if _anim_player:
 			_anim_player.stop()
 
 	if _attack_timer <= 0.0:
+		if _fishing_casting:
+			_start_fish_reel()
+			return
+		if _fishing_reeling:
+			_fishing_reeling = false
+			_hide_all_weapons()
 		if _queued_combo and _sword_combo_step > 0 and _sword_combo_step < SWORD_COMBO_MAX:
 			_queued_combo = false
 			_advance_sword_combo()
@@ -567,10 +577,28 @@ func _play_attack_sfx(prefix: String) -> void:
 			if _weapons_node:
 				_bow_original_weap_pos = _weapons_node.position
 		"fish_cast":
+			_fishing_casting = true
+			_fishing_reeling = false
 			if _audio:
 				_audio.play_fish_cast()
 			if _fx:
 				_fx.play_fish_cast_fx(facing)
+
+
+func _start_fish_reel() -> void:
+	_fishing_casting = false
+	_fishing_reeling = true
+	if _audio:
+		_audio.play_fish_splash()
+	var reel_anim := "fish_reel_" + facing
+	if _anim_player and _anim_player.has_animation(reel_anim):
+		_anim_player.play(reel_anim)
+		_attack_timer = _anim_player.get_animation(reel_anim).length
+		if _audio:
+			_audio.play_fish_reel()
+	else:
+		_fishing_reeling = false
+		_attack_timer = 0.0
 
 
 func _bow_release() -> void:

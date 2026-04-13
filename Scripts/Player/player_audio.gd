@@ -84,6 +84,14 @@ func play_fish_cast() -> void:
 	_play_single(_sfx_fishing, _fish_cast_sound)
 
 
+func play_fish_splash() -> void:
+	_play_single(_sfx_fishing, _fish_splash_sound)
+
+
+func play_fish_reel() -> void:
+	_play_single(_sfx_fishing, _fish_reel_sound)
+
+
 func play_water_pour() -> void:
 	_play_single(_sfx_water, _water_pour_sound)
 

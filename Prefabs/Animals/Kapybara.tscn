@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Texture2D" path="res://Assets/Cute_Fantasy/Animals/Kapybara/Static/Kapybara_Idle.png" id="1_tex_idle"]
 [ext_resource type="Texture2D" path="res://Assets/Cute_Fantasy/Animals/Kapybara/Static/Kapybara_LookAround.png" id="2_tex_look_around"]
@@ -7,6 +7,8 @@
 [ext_resource type="Texture2D" path="res://Assets/Cute_Fantasy/Animals/Kapybara/Static/Kapybara_Bubbles.png" id="5_tex_bubbles"]
 [ext_resource type="Texture2D" path="res://Assets/Cute_Fantasy/Animals/Kapybara/Static/Kapybara_LookAround_submerged.png" id="6_tex_look_around_submerged"]
 [ext_resource type="Script" path="res://Scripts/Animals/animal_base.gd" id="script"]
+[ext_resource type="AudioStream" path="res://Assets/Audio/SFX/Animals/kapybara_chirp.ogg" id="7_ambient"]
+[ext_resource type="AudioStream" path="res://Assets/Audio/SFX/Animals/footstep_2_heavy.ogg" id="8_footstep"]
 
 [sub_resource type="Animation" id="Animation_d0e58"]
 length = 0.9
@@ -335,10 +337,12 @@ size = Vector2(14, 10)
 
 [node name="Kapybara" type="CharacterBody2D"]
 collision_layer = 4
-collision_mask = 6
+collision_mask = 14
 script = ExtResource("script")
 move_speed = 12.0
 
+ambient_sound = ExtResource("7_ambient")
+footstep_sound = ExtResource("8_footstep")
 [node name="Node2D" type="Node2D" parent="."]
 
 [node name="Sprite" type="Sprite2D" parent="Node2D"]
@@ -358,4 +362,9 @@ position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_01a5b")
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
+volume_db = -10.0
 max_distance = 200.0
+
+[node name="FootstepPlayer" type="AudioStreamPlayer2D" parent="."]
+max_distance = 120.0
+volume_db = -14.0

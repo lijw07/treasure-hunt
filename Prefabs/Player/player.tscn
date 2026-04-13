@@ -18072,7 +18072,9 @@ size = Vector2(9, 6)
 
 [node name="Player" type="CharacterBody2D" unique_id=1916979783]
 texture_filter = 1
-collision_mask = 14
+motion_mode = 1
+collision_layer = 1
+collision_mask = 12
 script = ExtResource("1_3vpsw")
 
 [node name="Character" type="Node2D" parent="." unique_id=1866958140]

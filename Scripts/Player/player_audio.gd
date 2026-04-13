@@ -9,6 +9,7 @@ var _sfx_tool: AudioStreamPlayer2D
 var _sfx_fishing: AudioStreamPlayer2D
 var _sfx_water: AudioStreamPlayer2D
 var _sfx_bow: AudioStreamPlayer2D
+var _sfx_mount: AudioStreamPlayer2D
 
 var _footstep_sounds: Array[AudioStream] = []
 var _sword_sounds: Array[AudioStream] = []
@@ -27,6 +28,7 @@ var _fish_reel_sound: AudioStream
 var _water_pour_sound: AudioStream
 var _bow_shoot_sound: AudioStream
 var _bow_draw_sound: AudioStream
+var _horse_neigh_sound: AudioStream
 
 
 func _ready() -> void:
@@ -104,6 +106,10 @@ func play_bow_shoot() -> void:
 	_play_single(_sfx_bow, _bow_shoot_sound)
 
 
+func play_horse_neigh() -> void:
+	_play_single(_sfx_mount, _horse_neigh_sound, -4.0)
+
+
 func stop_bow() -> void:
 	if _sfx_bow and _sfx_bow.playing:
 		_sfx_bow.stop()
@@ -124,6 +130,7 @@ func _create_players(parent: Node) -> void:
 	_sfx_fishing  = _make_player(parent)
 	_sfx_water    = _make_player(parent)
 	_sfx_bow      = _make_player(parent)
+	_sfx_mount    = _make_player(parent)
 
 
 func _make_player(parent: Node, volume_db: float = 0.0) -> AudioStreamPlayer2D:
@@ -156,6 +163,7 @@ func _load_sounds() -> void:
 	_water_pour_sound = load("res://Assets/Audio/SFX/Tools/water_pour.ogg")
 	_bow_shoot_sound = load("res://Assets/Audio/SFX/Weapons/bow_shoot.ogg")
 	_bow_draw_sound = load("res://Assets/Audio/SFX/Weapons/bow_draw.ogg")
+	_horse_neigh_sound = load("res://Assets/Audio/SFX/Animals/horse_neigh.ogg")
 
 
 func _load_bank(pattern: String, indices: Array) -> Array[AudioStream]:

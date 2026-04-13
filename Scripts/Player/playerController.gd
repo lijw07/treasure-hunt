@@ -7,6 +7,10 @@ extends CharacterBody2D
 @export var jump_duration: float = 0.35
 @export var jump_move_factor: float = 0.25
 
+@export_group("Mount")
+@export var mounted_speed: float = 160.0
+@export var summon_duration: float = 2.0
+
 enum State { IDLE, MOVE, DODGE, JUMP, ATTACK, DEAD }
 
 var state: State = State.IDLE
@@ -14,6 +18,7 @@ var facing: String = "down"
 var dodge_facing: String = "down"
 var invincible: bool = false
 var attack_anim_name: String = ""
+var mounted: bool = false
 
 var _dodge_timer: float = 0.0
 var _dodge_cooldown_timer: float = 0.0
@@ -67,10 +72,19 @@ var _game_over_ui: CanvasLayer
 var _footstep_timer: float = 0.0
 var _grass_step_timer: float = 0.0
 var _iframe_flash_timer: float = 0.0
+var _knockback_velocity: Vector2 = Vector2.ZERO
 var _spawn_position: Vector2 = Vector2.ZERO
 var _debug_collisions: bool = false
 var _collect_area: Area2D
 var _magnet_targets: Array = []
+
+# ── Mount ────────────────────────────────────────────────────────────
+var _summoning: bool = false
+var _summon_timer: float = 0.0
+var _mount_node: Node2D
+const SUMMON_BAR_WIDTH: float = 20.0
+const SUMMON_BAR_HEIGHT: float = 3.0
+const SUMMON_BAR_Y_OFFSET: float = -18.0
 
 const WEAPON_NODE_MAP: Dictionary = {
 	"sword_combo": "sword",
@@ -101,12 +115,18 @@ func _ready() -> void:
 		"left": get_node_or_null("Weapons/Sword/Hitbox/HitboxLeft"),
 		"right": get_node_or_null("Weapons/Sword/Hitbox/HitboxRight"),
 	}
+	for hitbox in _sword_hitboxes.values():
+		if hitbox:
+			hitbox.add_to_group("player_weapon")
 	_tool_hitboxes = {
 		"tool_axe": get_node_or_null("Weapons/Tools/AxeHitbox"),
 		"tool_pickaxe": get_node_or_null("Weapons/Tools/PickaxeHitbox"),
 		"tool_hoe": get_node_or_null("Weapons/Tools/HoeHitbox"),
 		"tool_watercan": get_node_or_null("Weapons/Tools/WaterCanHitbox"),
 	}
+	for hitbox in _tool_hitboxes.values():
+		if hitbox:
+			hitbox.add_to_group("player_weapon")
 	_disable_all_hitboxes()
 	_connect_tool_hitbox_signals()
 	_hide_all_weapons()
@@ -116,6 +136,7 @@ func _ready() -> void:
 	_spawn_position = global_position
 	add_to_group("player")
 	_setup_collect_area()
+	_mount_node = get_node_or_null("Mount")
 	call_deferred("_deferred_ready")
 
 
@@ -193,6 +214,10 @@ func _on_collect_area_entered(area: Area2D) -> void:
 func take_damage(amount: int = 1) -> void:
 	if _health and _health.has_method("take_damage"):
 		_health.take_damage(amount)
+
+
+func apply_knockback(kb: Vector2) -> void:
+	_knockback_velocity = kb
 
 
 func set_checkpoint(pos: Vector2) -> void:
@@ -280,6 +305,19 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _draw() -> void:
+	# Summon progress bar
+	if _summoning and summon_duration > 0.0:
+		var progress: float = clampf(_summon_timer / summon_duration, 0.0, 1.0)
+		var bar_x: float = -SUMMON_BAR_WIDTH / 2.0
+		var bar_y: float = SUMMON_BAR_Y_OFFSET
+		# Background
+		draw_rect(Rect2(bar_x - 1, bar_y - 1, SUMMON_BAR_WIDTH + 2, SUMMON_BAR_HEIGHT + 2),
+			Color(0.1, 0.1, 0.1, 0.8))
+		# Fill
+		var fill_width: float = SUMMON_BAR_WIDTH * progress
+		draw_rect(Rect2(bar_x, bar_y, fill_width, SUMMON_BAR_HEIGHT),
+			Color(0.9, 0.8, 0.3, 0.95))
+
 	if not _debug_collisions:
 		return
 	var player_shape = get_node_or_null("PlayerHitbox")
@@ -333,11 +371,23 @@ func _physics_process(delta: float) -> void:
 		if _iframe_flash_timer <= 0.0 and _character_node:
 			_character_node.modulate = Color.WHITE
 
+	# Knockback decay
+	if _knockback_velocity.length() > 5.0:
+		_knockback_velocity = _knockback_velocity.lerp(Vector2.ZERO, 10.0 * delta)
+		velocity += _knockback_velocity
+	else:
+		_knockback_velocity = Vector2.ZERO
+
 	_update_magnet_targets(delta)
 
 	if state == State.DEAD:
 		velocity = Vector2.ZERO
 		move_and_slide()
+		return
+
+	# Handle mount summoning (locks out all other input)
+	if _summoning:
+		_process_summon(delta)
 		return
 
 	_update_facing()
@@ -376,12 +426,15 @@ func _state_idle() -> void:
 	velocity = Vector2.ZERO
 	_footstep_timer = 0.0
 
-	if _try_attack():
+	if _try_mount_action():
 		return
-	if _try_dodge():
-		return
-	if _try_jump():
-		return
+	if not mounted:
+		if _try_attack():
+			return
+		if _try_dodge():
+			return
+		if _try_jump():
+			return
 	if _get_input_direction() != Vector2.ZERO:
 		state = State.MOVE
 		return
@@ -390,12 +443,15 @@ func _state_idle() -> void:
 
 
 func _state_move() -> void:
-	if _try_attack():
+	if _try_mount_action():
 		return
-	if _try_dodge():
-		return
-	if _try_jump():
-		return
+	if not mounted:
+		if _try_attack():
+			return
+		if _try_dodge():
+			return
+		if _try_jump():
+			return
 
 	var input_dir = _get_input_direction()
 
@@ -403,7 +459,8 @@ func _state_move() -> void:
 		state = State.IDLE
 		return
 
-	velocity = input_dir * move_speed
+	var current_speed: float = mounted_speed if mounted else move_speed
+	velocity = input_dir * current_speed
 	move_and_slide()
 
 	_footstep_timer -= get_physics_process_delta_time()
@@ -848,6 +905,68 @@ func _get_input_direction() -> Vector2:
 	if dir.length() > 1.0:
 		dir = dir.normalized()
 	return dir
+
+
+# ═════════════════════════════════════════════════════════════════════
+#  MOUNT SUMMONING
+# ═════════════════════════════════════════════════════════════════════
+
+func _start_summon() -> void:
+	_summoning = true
+	_summon_timer = 0.0
+	velocity = Vector2.ZERO
+
+func _cancel_summon() -> void:
+	_summoning = false
+	_summon_timer = 0.0
+	queue_redraw()
+
+func _complete_summon() -> void:
+	_summoning = false
+	_summon_timer = 0.0
+	mounted = true
+	if _mount_node:
+		_mount_node.visible = true
+	_hide_all_weapons()
+	if _fx:
+		_fx.play_summon_smoke()
+	if _audio and _audio.has_method("play_horse_neigh"):
+		_audio.play_horse_neigh()
+	queue_redraw()
+
+func _dismount() -> void:
+	mounted = false
+	if _mount_node:
+		_mount_node.visible = false
+	if _fx:
+		_fx.play_summon_smoke()
+
+func _process_summon(delta: float) -> void:
+	_summon_timer += delta
+	queue_redraw()
+	# Cancel if player tries to move
+	if _get_input_direction() != Vector2.ZERO:
+		_cancel_summon()
+		return
+	# Cancel if pressed H again
+	if Input.is_action_just_pressed("mount"):
+		_cancel_summon()
+		return
+	if _summon_timer >= summon_duration:
+		_complete_summon()
+		return
+	velocity = Vector2.ZERO
+	move_and_slide()
+
+func _try_mount_action() -> bool:
+	if not Input.is_action_just_pressed("mount"):
+		return false
+	if mounted:
+		_dismount()
+		return true
+	else:
+		_start_summon()
+		return true
 
 
 func _set_hit_collision(enabled: bool) -> void:

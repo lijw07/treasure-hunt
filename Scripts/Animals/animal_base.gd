@@ -17,8 +17,10 @@ extends CharacterBody2D
 
 @export_group("Audio")
 @export var ambient_sound: AudioStream
-@export var ambient_interval_min: float = 8.0
-@export var ambient_interval_max: float = 20.0
+@export var ambient_interval_min: float = 15.0
+@export var ambient_interval_max: float = 35.0
+@export var footstep_sound: AudioStream
+@export var footstep_interval: float = 0.35
 
 enum State { IDLE, WALKING }
 
@@ -27,10 +29,12 @@ var _timer: float = 0.0
 var _walk_direction: Vector2 = Vector2.ZERO
 var _spawn_position: Vector2 = Vector2.ZERO
 var _audio_timer: float = 0.0
+var _footstep_timer: float = 0.0
 
 @onready var _anim_player: AnimationPlayer = $Node2D/AnimationPlayer
 @onready var _sprite: Sprite2D = $Node2D/Sprite
 @onready var _audio_player: AudioStreamPlayer2D = $AudioStreamPlayer2D if has_node("AudioStreamPlayer2D") else null
+@onready var _footstep_player: AudioStreamPlayer2D = $FootstepPlayer if has_node("FootstepPlayer") else null
 
 
 func _ready() -> void:
@@ -59,6 +63,15 @@ func _physics_process(delta: float) -> void:
 				_play_directional_anim("walk")
 			if _timer <= 0.0:
 				_enter_idle()
+
+	# Footstep audio while walking
+	if _footstep_player and footstep_sound and _state == State.WALKING:
+		_footstep_timer -= delta
+		if _footstep_timer <= 0.0:
+			_footstep_player.stream = footstep_sound
+			_footstep_player.pitch_scale = randf_range(0.9, 1.1)
+			_footstep_player.play()
+			_footstep_timer = footstep_interval
 
 	# Ambient audio
 	if _audio_player and ambient_sound:

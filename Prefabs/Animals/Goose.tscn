@@ -1,7 +1,9 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Texture2D" path="res://Assets/Cute_Fantasy/Animals/Goose/Goose_01.png" id="1_tex"]
 [ext_resource type="Script" path="res://Scripts/Animals/animal_base.gd" id="2_script"]
+[ext_resource type="AudioStream" path="res://Assets/Audio/SFX/Animals/goose_honk.ogg" id="3_ambient"]
+[ext_resource type="AudioStream" path="res://Assets/Audio/SFX/Animals/footstep_3_medium.ogg" id="4_footstep"]
 
 [sub_resource type="Animation" id="Animation_8fef6"]
 length = 0.2
@@ -476,9 +478,11 @@ size = Vector2(10, 8)
 
 [node name="Goose" type="CharacterBody2D"]
 collision_layer = 4
-collision_mask = 6
+collision_mask = 14
 script = ExtResource("2_script")
 
+ambient_sound = ExtResource("3_ambient")
+footstep_sound = ExtResource("4_footstep")
 [node name="Node2D" type="Node2D" parent="."]
 
 [node name="Sprite" type="Sprite2D" parent="Node2D"]
@@ -497,4 +501,9 @@ position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_c75dc")
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
+volume_db = -10.0
 max_distance = 200.0
+
+[node name="FootstepPlayer" type="AudioStreamPlayer2D" parent="."]
+max_distance = 120.0
+volume_db = -14.0

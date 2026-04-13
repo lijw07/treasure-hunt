@@ -14,6 +14,10 @@ func _process(_delta: float) -> void:
 			_play_once("roll_" + controller.dodge_facing, 1.5)
 		controller.State.JUMP:
 			_play_once("jump_" + controller.facing)
+		controller.State.ATTACK:
+			_play_once(controller.attack_anim_name)
+		controller.State.DEAD:
+			pass
 
 
 func _play(anim_name: String) -> void:

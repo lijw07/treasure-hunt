@@ -7,11 +7,13 @@ extends CharacterBody2D
 @export var jump_duration: float = 0.35
 @export var jump_move_factor: float = 0.25
 
-enum State { IDLE, MOVE, DODGE, JUMP }
+enum State { IDLE, MOVE, DODGE, JUMP, ATTACK, DEAD }
+
 var state: State = State.IDLE
 var facing: String = "down"
 var dodge_facing: String = "down"
 var invincible: bool = false
+var attack_anim_name: String = ""
 
 var _dodge_timer: float = 0.0
 var _dodge_cooldown_timer: float = 0.0
@@ -19,10 +21,62 @@ var _dodge_direction: Vector2 = Vector2.ZERO
 var _jump_timer: float = 0.0
 var _jump_direction: Vector2 = Vector2.ZERO
 var _jump_start_speed: float = 0.0
+var _attack_timer: float = 0.0
+var _sword_combo_step: int = 0
+var _combo_window_timer: float = 0.0
+var _queued_combo: bool = false
+var _weapon_hidden_this_swing: bool = false
+var _bow_shoot_timer: float = 0.0
+var _bow_shot_fired: bool = false
+var _bow_charging: bool = false
+var _bow_charge_time: float = 0.0
+var _bow_original_char_pos: Vector2 = Vector2.ZERO
+var _bow_original_weap_pos: Vector2 = Vector2.ZERO
+
+const COMBO_WINDOW: float = 0.4
+const BOW_RELEASE_TIME: float = 0.3
+const BOW_MAX_CHARGE: float = 2.5
+const BOW_SHAKE_START: float = 0.8
+const BOW_SHAKE_MAX: float = 0.8
+const SWORD_COMBO_MAX: int = 3
+const WEAPON_HIDE_BEFORE_END: float = 0.1
+const FOOTSTEP_INTERVAL: float = 0.3
+const GRASS_STEP_INTERVAL: float = 0.25
+
 var _input_mgr: Node
 var _base_collision_layer: int = 0
 var _base_collision_mask: int = 0
 var _player_hitbox: CollisionShape2D
+var _toolbar: Node
+var _anim_player: AnimationPlayer
+var _character_node: Node2D
+var _weapons_node: Node2D
+var _sword_node: Node2D
+var _tools_node: Node2D
+var _bow_node: Node2D
+var _fishing_rod_node: Node2D
+var _sword_hitboxes: Dictionary = {}
+var _tool_hitboxes: Dictionary = {}
+var _audio: Node
+var _fx: Node2D
+var _health: Node
+var _health_ui: CanvasLayer
+var _game_over_ui: CanvasLayer
+var _footstep_timer: float = 0.0
+var _grass_step_timer: float = 0.0
+var _iframe_flash_timer: float = 0.0
+var _spawn_position: Vector2 = Vector2.ZERO
+var _debug_collisions: bool = false
+
+const WEAPON_NODE_MAP: Dictionary = {
+	"sword_combo": "sword",
+	"bow": "bow",
+	"tool_axe": "tools",
+	"tool_pickaxe": "tools",
+	"tool_hoe": "tools",
+	"tool_watercan": "tools",
+	"fish_cast": "fishing_rod",
+}
 
 
 func _ready() -> void:
@@ -30,11 +84,214 @@ func _ready() -> void:
 	_base_collision_layer = collision_layer
 	_base_collision_mask = collision_mask
 	_player_hitbox = get_node_or_null("PlayerHitbox")
+	_character_node = get_node_or_null("Character")
+	_anim_player = get_node_or_null("Character/AnimationPlayer")
+	_weapons_node = get_node_or_null("Weapons")
+	_sword_node = get_node_or_null("Weapons/Sword")
+	_tools_node = get_node_or_null("Weapons/Tools")
+	_bow_node = get_node_or_null("Weapons/Bow")
+	_fishing_rod_node = get_node_or_null("Weapons/FishingRod")
+	_sword_hitboxes = {
+		"down": get_node_or_null("Weapons/Sword/Hitbox/HitboxDown"),
+		"up": get_node_or_null("Weapons/Sword/Hitbox/HitboxUp"),
+		"left": get_node_or_null("Weapons/Sword/Hitbox/HitboxLeft"),
+		"right": get_node_or_null("Weapons/Sword/Hitbox/HitboxRight"),
+	}
+	_tool_hitboxes = {
+		"tool_axe": get_node_or_null("Weapons/Tools/AxeHitbox"),
+		"tool_pickaxe": get_node_or_null("Weapons/Tools/PickaxeHitbox"),
+		"tool_hoe": get_node_or_null("Weapons/Tools/HoeHitbox"),
+		"tool_watercan": get_node_or_null("Weapons/Tools/WaterCanHitbox"),
+	}
+	_disable_all_hitboxes()
+	_connect_tool_hitbox_signals()
+	_hide_all_weapons()
+	_setup_audio()
+	_setup_fx()
+	_setup_health()
+	_spawn_position = global_position
+	add_to_group("player")
+	call_deferred("_deferred_ready")
+
+
+func _deferred_ready() -> void:
+	var nodes = get_tree().get_nodes_in_group("toolbar")
+	if nodes.size() > 0:
+		_toolbar = nodes[0]
+
+
+func _setup_audio() -> void:
+	var audio_script = load("res://Scripts/Player/player_audio.gd")
+	if audio_script:
+		_audio = Node.new()
+		_audio.set_script(audio_script)
+		_audio.name = "PlayerAudio"
+		add_child(_audio)
+
+
+func _setup_fx() -> void:
+	var fx_script = load("res://Scripts/FX/combat_fx.gd")
+	if fx_script:
+		_fx = Node2D.new()
+		_fx.set_script(fx_script)
+		_fx.name = "CombatFX"
+		add_child(_fx)
+		move_child(_fx, 0)
+
+
+func _setup_health() -> void:
+	var hs_script = load("res://Scripts/Player/health_system.gd")
+	if hs_script:
+		_health = Node.new()
+		_health.set_script(hs_script)
+		_health.name = "HealthSystem"
+		add_child(_health)
+		_health.damage_taken.connect(_on_damage_taken)
+		_health.died.connect(_on_died)
+
+	var hui_script = load("res://Scripts/UI/health_ui.gd")
+	if hui_script:
+		_health_ui = CanvasLayer.new()
+		_health_ui.set_script(hui_script)
+		_health_ui.name = "HealthUI"
+		_health_ui.layer = 10
+		add_child(_health_ui)
+
+	var go_script = load("res://Scripts/UI/game_over_ui.gd")
+	if go_script:
+		_game_over_ui = CanvasLayer.new()
+		_game_over_ui.set_script(go_script)
+		_game_over_ui.name = "GameOverUI"
+		add_child(_game_over_ui)
+		_game_over_ui.respawn_requested.connect(_on_respawn)
+
+
+func take_damage(amount: int = 1) -> void:
+	if _health and _health.has_method("take_damage"):
+		_health.take_damage(amount)
+
+
+func set_checkpoint(pos: Vector2) -> void:
+	_spawn_position = pos
+
+
+func _on_damage_taken(_amount: int) -> void:
+	_iframe_flash_timer = _health.invincibility_duration if _health else 1.0
+
+
+func _on_died() -> void:
+	state = State.DEAD
+	velocity = Vector2.ZERO
+	_set_hit_collision(false)
+	if _character_node:
+		var tw = create_tween()
+		tw.tween_property(_character_node, "modulate", Color(0.5, 0.1, 0.1, 0.6), 0.4)
+	if _game_over_ui:
+		await get_tree().create_timer(0.8).timeout
+		_game_over_ui.show_game_over()
+
+
+func _on_respawn() -> void:
+	state = State.IDLE
+	global_position = _spawn_position
+	_set_hit_collision(true)
+	if _character_node:
+		_character_node.modulate = Color.WHITE
+	if _health:
+		_health.reset()
+
+
+func _connect_tool_hitbox_signals() -> void:
+	var axe_hitbox = _tool_hitboxes.get("tool_axe")
+	if axe_hitbox and not axe_hitbox.is_connected("area_entered", _on_axe_hit):
+		axe_hitbox.area_entered.connect(_on_axe_hit)
+	var pick_hitbox = _tool_hitboxes.get("tool_pickaxe")
+	if pick_hitbox and not pick_hitbox.is_connected("area_entered", _on_pickaxe_hit):
+		pick_hitbox.area_entered.connect(_on_pickaxe_hit)
+
+
+func _on_axe_hit(area: Area2D) -> void:
+	if area.is_in_group("choppable"):
+		if _audio:
+			_audio.play_axe_chop()
+		var parent = area.get_parent()
+		if parent and parent.has_method("take_hit"):
+			parent.take_hit(1)
+
+
+func _on_pickaxe_hit(area: Area2D) -> void:
+	if area.is_in_group("mineable"):
+		if _audio:
+			_audio.play_pickaxe_hit()
+		var parent = area.get_parent()
+		if parent and parent.has_method("take_hit"):
+			parent.take_hit(1)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F3:
+		_debug_collisions = !_debug_collisions
+		queue_redraw()
+
+
+func _draw() -> void:
+	if not _debug_collisions:
+		return
+	var player_shape = get_node_or_null("PlayerHitbox")
+	if player_shape and player_shape.shape and not player_shape.disabled:
+		_draw_collision_shape(player_shape, Color.GREEN)
+	if state == State.ATTACK:
+		for dir_name in _sword_hitboxes:
+			var hitbox_area = _sword_hitboxes[dir_name]
+			if hitbox_area == null or not hitbox_area.monitoring:
+				continue
+			for child in hitbox_area.get_children():
+				if child is CollisionShape2D and child.shape and not child.disabled:
+					_draw_collision_shape(child, Color.RED)
+		for tool_name in _tool_hitboxes:
+			var hitbox_area = _tool_hitboxes[tool_name]
+			if hitbox_area == null or not hitbox_area.monitoring:
+				continue
+			for child in hitbox_area.get_children():
+				if child is CollisionShape2D and child.shape and not child.disabled:
+					_draw_collision_shape(child, Color.ORANGE)
+
+
+func _draw_collision_shape(shape_node: CollisionShape2D, color: Color) -> void:
+	var shape = shape_node.shape
+	var pos = shape_node.global_position - global_position
+	if shape is RectangleShape2D:
+		var rect = Rect2(pos - shape.size / 2.0, shape.size)
+		draw_rect(rect, Color(color, 0.3), true)
+		draw_rect(rect, color, false, 1.0)
+	elif shape is CircleShape2D:
+		draw_circle(pos, shape.radius, Color(color, 0.3))
+		draw_arc(pos, shape.radius, 0, TAU, 32, color, 1.0)
 
 
 func _physics_process(delta: float) -> void:
+	if _debug_collisions:
+		queue_redraw()
 	if _dodge_cooldown_timer > 0.0:
 		_dodge_cooldown_timer -= delta
+
+	if _combo_window_timer > 0.0:
+		_combo_window_timer -= delta
+		if _combo_window_timer <= 0.0:
+			_sword_combo_step = 0
+
+	if _iframe_flash_timer > 0.0:
+		_iframe_flash_timer -= delta
+		if _character_node:
+			var blink = int(_iframe_flash_timer * 10.0) % 2 == 0
+			_character_node.modulate.a = 0.3 if blink else 1.0
+		if _iframe_flash_timer <= 0.0 and _character_node:
+			_character_node.modulate = Color.WHITE
+
+	if state == State.DEAD:
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
 
 	_update_facing()
 
@@ -47,9 +304,14 @@ func _physics_process(delta: float) -> void:
 			_state_dodge(delta)
 		State.JUMP:
 			_state_jump(delta)
+		State.ATTACK:
+			_state_attack(delta)
 
 
 func _update_facing() -> void:
+	if state == State.ATTACK:
+		return
+
 	var diff := get_global_mouse_position() - global_position
 
 	if _input_mgr:
@@ -65,7 +327,10 @@ func _update_facing() -> void:
 
 func _state_idle() -> void:
 	velocity = Vector2.ZERO
+	_footstep_timer = 0.0
 
+	if _try_attack():
+		return
 	if _try_dodge():
 		return
 	if _try_jump():
@@ -78,6 +343,8 @@ func _state_idle() -> void:
 
 
 func _state_move() -> void:
+	if _try_attack():
+		return
 	if _try_dodge():
 		return
 	if _try_jump():
@@ -92,18 +359,34 @@ func _state_move() -> void:
 	velocity = input_dir * move_speed
 	move_and_slide()
 
+	_footstep_timer -= get_physics_process_delta_time()
+	if _footstep_timer <= 0.0:
+		if _audio:
+			_audio.play_footstep()
+		_footstep_timer = FOOTSTEP_INTERVAL
+	_grass_step_timer -= get_physics_process_delta_time()
+	if _grass_step_timer <= 0.0:
+		if _fx:
+			_fx.play_walk_grass()
+		_grass_step_timer = GRASS_STEP_INTERVAL
+
 
 func _state_dodge(delta: float) -> void:
 	_dodge_timer -= delta
 
 	if _dodge_timer <= 0.0:
 		invincible = false
-		_set_hit_collision(true)
 		if _get_input_direction() != Vector2.ZERO:
 			state = State.MOVE
 		else:
 			state = State.IDLE
 		return
+
+	_grass_step_timer -= delta
+	if _grass_step_timer <= 0.0:
+		if _fx:
+			_fx.play_roll_grass()
+		_grass_step_timer = GRASS_STEP_INTERVAL * 0.6
 
 	velocity = _dodge_direction * dodge_speed
 	move_and_slide()
@@ -113,6 +396,8 @@ func _state_jump(delta: float) -> void:
 	_jump_timer -= delta
 
 	if _jump_timer <= 0.0:
+		if _audio:
+			_audio.play_land()
 		if _get_input_direction() != Vector2.ZERO:
 			state = State.MOVE
 		else:
@@ -126,6 +411,225 @@ func _state_jump(delta: float) -> void:
 	move_and_slide()
 
 
+func _state_attack(delta: float) -> void:
+	if _bow_charging:
+		_bow_charge_time += delta
+
+		var should_release = not Input.is_action_pressed("basic_attack")
+		var auto_release = _bow_charge_time >= BOW_MAX_CHARGE
+
+		var current_item = null
+		if _toolbar:
+			current_item = _toolbar.get_selected_item()
+		var tool_switched = current_item != null and current_item.anim_prefix != "bow"
+
+		if tool_switched:
+			_bow_cancel()
+			return
+
+		if should_release or auto_release:
+			_bow_release()
+			return
+
+		if _bow_charge_time > BOW_SHAKE_START:
+			var shake_progress = clampf((_bow_charge_time - BOW_SHAKE_START) / (BOW_MAX_CHARGE - BOW_SHAKE_START), 0.0, 1.0)
+			var shake_intensity = shake_progress * BOW_SHAKE_MAX
+			var shake_offset = Vector2(
+				randf_range(-shake_intensity, shake_intensity),
+				randf_range(-shake_intensity, shake_intensity)
+			)
+			if _character_node:
+				_character_node.position = _bow_original_char_pos + shake_offset
+			if _weapons_node:
+				_weapons_node.position = _bow_original_weap_pos + shake_offset
+			queue_redraw()
+
+		if _anim_player and _anim_player.is_playing():
+			if _anim_player.current_animation_position >= 0.2:
+				_anim_player.pause()
+
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
+
+	_attack_timer -= delta
+
+	if not _bow_shot_fired and _bow_shoot_timer > 0.0:
+		_bow_shoot_timer -= delta
+		if _bow_shoot_timer <= 0.0:
+			_bow_shot_fired = true
+			if _bow_node and _bow_node.has_method("shoot"):
+				_bow_node.shoot()
+			if _audio:
+				_audio.play_bow_shoot()
+			if _fx:
+				_fx.play_bow_fx(facing)
+
+	if Input.is_action_just_pressed("basic_attack"):
+		_queued_combo = true
+
+	if not _weapon_hidden_this_swing and _attack_timer <= WEAPON_HIDE_BEFORE_END:
+		_hide_all_weapons()
+		_weapon_hidden_this_swing = true
+		if _anim_player:
+			_anim_player.stop()
+
+	if _attack_timer <= 0.0:
+		if _queued_combo and _sword_combo_step > 0 and _sword_combo_step < SWORD_COMBO_MAX:
+			_queued_combo = false
+			_advance_sword_combo()
+			return
+
+		_combo_window_timer = COMBO_WINDOW
+		if _get_input_direction() != Vector2.ZERO:
+			state = State.MOVE
+		else:
+			state = State.IDLE
+		return
+
+	velocity = Vector2.ZERO
+	move_and_slide()
+
+
+func _try_attack() -> bool:
+	if not Input.is_action_just_pressed("basic_attack"):
+		return false
+	if _toolbar == null:
+		return false
+	var item = _toolbar.get_selected_item()
+	if item.anim_prefix == "":
+		return false
+
+	var prefix: String = item.anim_prefix
+	var anim_name: String
+
+	if prefix == "sword_combo":
+		if _combo_window_timer > 0.0 and _sword_combo_step > 0 and _sword_combo_step < SWORD_COMBO_MAX:
+			_sword_combo_step += 1
+		else:
+			_sword_combo_step = 1
+		_combo_window_timer = 0.0
+		anim_name = prefix + "_" + facing + "_" + str(_sword_combo_step)
+	else:
+		_sword_combo_step = 0
+		anim_name = prefix + "_" + facing
+
+	if _anim_player == null or not _anim_player.has_animation(anim_name):
+		return false
+
+	state = State.ATTACK
+	_queued_combo = false
+	_weapon_hidden_this_swing = false
+	attack_anim_name = anim_name
+	_attack_timer = _anim_player.get_animation(anim_name).length
+	_show_weapon(prefix)
+	_play_attack_sfx(prefix)
+	return true
+
+
+func _play_attack_sfx(prefix: String) -> void:
+	match prefix:
+		"sword_combo":
+			if _audio:
+				_audio.play_sword_swing(_sword_combo_step)
+			if _fx:
+				_fx.play_sword_fx(facing, _sword_combo_step)
+		"tool_axe":
+			if _audio:
+				_audio.play_axe_swing()
+			if _fx:
+				_fx.play_axe_fx(facing)
+		"tool_pickaxe":
+			if _audio:
+				_audio.play_pickaxe_swing()
+			if _fx:
+				_fx.play_pickaxe_fx(facing)
+		"tool_hoe":
+			if _audio:
+				_audio.play_water_pour()
+			if _fx:
+				_fx.play_water_fx(facing)
+		"tool_watercan":
+			if _audio:
+				_audio.play_tool_swing()
+			if _fx:
+				_fx.play_hoe_fx(facing)
+		"bow":
+			_bow_charging = true
+			_bow_charge_time = 0.0
+			_bow_shot_fired = false
+			_bow_shoot_timer = 0.0
+			_attack_timer = 999.0
+			if _audio:
+				_audio.play_bow_draw()
+			if _character_node:
+				_bow_original_char_pos = _character_node.position
+			if _weapons_node:
+				_bow_original_weap_pos = _weapons_node.position
+		"fish_cast":
+			if _audio:
+				_audio.play_fish_cast()
+			if _fx:
+				_fx.play_fish_cast_fx(facing)
+
+
+func _bow_release() -> void:
+	_bow_charging = false
+	if _audio:
+		_audio.stop_bow()
+	if _character_node:
+		_character_node.position = _bow_original_char_pos
+	if _weapons_node:
+		_weapons_node.position = _bow_original_weap_pos
+	if _anim_player:
+		_anim_player.play()
+	_bow_shoot_timer = 0.1
+	_bow_shot_fired = false
+	var anim_name = "bow_" + facing
+	if _anim_player and _anim_player.has_animation(anim_name):
+		var anim_length = _anim_player.get_animation(anim_name).length
+		_attack_timer = anim_length - 0.2
+	else:
+		_attack_timer = 0.4
+
+
+func _bow_cancel() -> void:
+	_bow_charging = false
+	_bow_shot_fired = true
+	if _audio:
+		_audio.stop_bow()
+	if _character_node:
+		_character_node.position = _bow_original_char_pos
+	if _weapons_node:
+		_weapons_node.position = _bow_original_weap_pos
+	if _anim_player:
+		_anim_player.stop()
+	_hide_all_weapons()
+	if _get_input_direction() != Vector2.ZERO:
+		state = State.MOVE
+	else:
+		state = State.IDLE
+
+
+func _advance_sword_combo() -> void:
+	_sword_combo_step += 1
+	var anim_name = "sword_combo_" + facing + "_" + str(_sword_combo_step)
+
+	if _anim_player == null or not _anim_player.has_animation(anim_name):
+		_sword_combo_step = 0
+		state = State.IDLE
+		return
+
+	_weapon_hidden_this_swing = false
+	attack_anim_name = anim_name
+	_attack_timer = _anim_player.get_animation(anim_name).length
+	_show_weapon("sword_combo")
+	if _audio:
+		_audio.play_sword_swing(_sword_combo_step)
+	if _fx:
+		_fx.play_sword_fx(facing, _sword_combo_step)
+
+
 func _try_dodge() -> bool:
 	if not Input.is_action_just_pressed("dodge"):
 		return false
@@ -134,9 +638,12 @@ func _try_dodge() -> bool:
 
 	state = State.DODGE
 	invincible = true
-	_set_hit_collision(false)
 	_dodge_timer = dodge_duration
 	_dodge_cooldown_timer = dodge_cooldown
+	if _audio:
+		_audio.play_roll()
+	if _fx:
+		_fx.play_roll_grass()
 
 	var input_dir = _get_input_direction()
 	if input_dir != Vector2.ZERO:
@@ -160,7 +667,98 @@ func _try_jump() -> bool:
 	_jump_timer = jump_duration
 	_jump_direction = _get_input_direction()
 	_jump_start_speed = velocity.length() if velocity.length() > 0.0 else move_speed
+	if _audio:
+		_audio.play_jump()
+	if _fx:
+		_fx.play_jump_grass()
 	return true
+
+
+func _show_weapon(anim_prefix: String) -> void:
+	_hide_all_weapons()
+	if _weapons_node == null:
+		return
+	_weapons_node.visible = true
+
+	if _character_node:
+		_character_node.z_index = 1 if facing == "up" else 0
+
+	var weapon_key = WEAPON_NODE_MAP.get(anim_prefix, "")
+	match weapon_key:
+		"sword":
+			if _sword_node:
+				_sword_node.visible = true
+			_enable_sword_hitbox(facing)
+		"tools":
+			if _tools_node:
+				_tools_node.visible = true
+			_enable_tool_hitbox(anim_prefix, facing)
+		"bow":
+			if _bow_node:
+				_bow_node.visible = true
+		"fishing_rod":
+			if _fishing_rod_node:
+				_fishing_rod_node.visible = true
+
+
+func _hide_all_weapons() -> void:
+	_disable_all_hitboxes()
+	if _character_node:
+		_character_node.z_index = 0
+	if _weapons_node:
+		_weapons_node.visible = false
+	if _sword_node:
+		_sword_node.visible = false
+	if _tools_node:
+		_tools_node.visible = false
+	if _bow_node:
+		_bow_node.visible = false
+	if _fishing_rod_node:
+		_fishing_rod_node.visible = false
+
+
+func _enable_sword_hitbox(dir: String) -> void:
+	_disable_all_hitboxes()
+	var hitbox = _sword_hitboxes.get(dir)
+	if hitbox:
+		hitbox.monitoring = true
+		hitbox.monitorable = true
+		var shape_suffix = "2" if _sword_combo_step >= 3 else "1"
+		for child in hitbox.get_children():
+			if child is CollisionShape2D:
+				child.disabled = not child.name.ends_with(shape_suffix)
+
+
+func _enable_tool_hitbox(anim_prefix: String, dir: String) -> void:
+	_disable_all_hitboxes()
+	var hitbox = _tool_hitboxes.get(anim_prefix)
+	if hitbox == null:
+		return
+	hitbox.monitoring = true
+	hitbox.monitorable = true
+	for child in hitbox.get_children():
+		if child is CollisionShape2D:
+			var shape_dir = child.name.replace("Hitbox", "").to_lower()
+			child.disabled = shape_dir != dir
+
+
+func _disable_all_hitboxes() -> void:
+	for hitbox in _sword_hitboxes.values():
+		if hitbox:
+			hitbox.monitoring = false
+			hitbox.monitorable = false
+			_set_collision_shapes(hitbox, true)
+	for hitbox in _tool_hitboxes.values():
+		if hitbox:
+			hitbox.monitoring = false
+			hitbox.monitorable = false
+			_set_collision_shapes(hitbox, true)
+
+
+func _set_collision_shapes(parent: Node, disabled: bool) -> void:
+	for child in parent.get_children():
+		if child is CollisionShape2D:
+			child.disabled = disabled
 
 
 func _facing_to_vector() -> Vector2:

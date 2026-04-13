@@ -2,6 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://b0mfkpbnqy7ea" path="res://Scenes/grass_biome.tscn" id="1_ground"]
 [ext_resource type="PackedScene" uid="uid://cpbt4eoxba3h" path="res://Prefabs/Player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" uid="uid://dtoolbar001" path="res://Scenes/toolbar.tscn" id="3_toolbar"]
 
 [node name="TestScene" type="Node2D" unique_id=1147789957]
 
@@ -10,3 +11,5 @@
 [node name="Environment" type="Node2D" parent="." unique_id=1412599087]
 
 [node name="Player" parent="." unique_id=710873196 instance=ExtResource("2_player")]
+
+[node name="Toolbar" parent="." unique_id=507101024 instance=ExtResource("3_toolbar")]

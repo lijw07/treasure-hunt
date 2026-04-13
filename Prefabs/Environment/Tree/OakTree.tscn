@@ -1,10 +1,29 @@
-[gd_scene format=3 uid="uid://rewwdwvjegp1"]
+[gd_scene load_steps=4 format=3 uid="uid://rewwdwvjegp1"]
 
 [ext_resource type="Texture2D" uid="uid://oklrvj534qbl" path="res://Assets/Cute_Fantasy/Trees/Big_Oak_Tree.png" id="1_o02ia"]
+[ext_resource type="Script" path="res://Scripts/Environment/resource_node.gd" id="2_resnode"]
 
-[node name="Node2D" type="Node2D" unique_id=1580641783]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_trunk"]
+size = Vector2(16, 24)
+
+[node name="OakTree" type="StaticBody2D" unique_id=1580641783]
+script = ExtResource("2_resnode")
+resource_type = "tree"
+health = 3
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=558649203]
 texture = ExtResource("1_o02ia")
 hframes = 3
 frame = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_trunk")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 2
+collision_mask = 16
+
+[node name="HurtboxShape" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, 0)
+shape = SubResource("RectangleShape2D_trunk")

@@ -69,6 +69,8 @@ var _grass_step_timer: float = 0.0
 var _iframe_flash_timer: float = 0.0
 var _spawn_position: Vector2 = Vector2.ZERO
 var _debug_collisions: bool = false
+var _collect_area: Area2D
+var _magnet_targets: Array = []
 
 const WEAPON_NODE_MAP: Dictionary = {
 	"sword_combo": "sword",
@@ -113,6 +115,7 @@ func _ready() -> void:
 	_setup_health()
 	_spawn_position = global_position
 	add_to_group("player")
+	_setup_collect_area()
 	call_deferred("_deferred_ready")
 
 
@@ -166,6 +169,25 @@ func _setup_health() -> void:
 		_game_over_ui.name = "GameOverUI"
 		add_child(_game_over_ui)
 		_game_over_ui.respawn_requested.connect(_on_respawn)
+
+
+func _setup_collect_area() -> void:
+	_collect_area = Area2D.new()
+	_collect_area.name = "CollectRadius"
+	_collect_area.collision_layer = 0
+	_collect_area.collision_mask = 8
+	var shape := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = 40.0
+	shape.shape = circle
+	_collect_area.add_child(shape)
+	add_child(_collect_area)
+	_collect_area.area_entered.connect(_on_collect_area_entered)
+
+
+func _on_collect_area_entered(area: Area2D) -> void:
+	if area.has_method("magnet_collect") and not area in _magnet_targets:
+		_magnet_targets.append(area)
 
 
 func take_damage(amount: int = 1) -> void:
@@ -226,10 +248,29 @@ func _on_axe_hit(area: Area2D) -> void:
 func _on_pickaxe_hit(area: Area2D) -> void:
 	if area.is_in_group("mineable"):
 		if _audio:
-			_audio.play_pickaxe_hit()
+			_audio.play_ore_hit()
 		var parent = area.get_parent()
 		if parent and parent.has_method("take_hit"):
 			parent.take_hit(1)
+
+
+func _update_magnet_targets(delta: float) -> void:
+	var to_remove: Array = []
+	for drop in _magnet_targets:
+		if not is_instance_valid(drop):
+			to_remove.append(drop)
+			continue
+		var dir: Vector2 = global_position - (drop as Node2D).global_position
+		var dist: float = dir.length()
+		if dist < 6.0:
+			if drop.has_method("magnet_collect"):
+				drop.magnet_collect()
+			to_remove.append(drop)
+		else:
+			var speed: float = 200.0 * delta
+			(drop as Node2D).global_position += dir.normalized() * speed
+	for d in to_remove:
+		_magnet_targets.erase(d)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -291,6 +332,8 @@ func _physics_process(delta: float) -> void:
 			_character_node.modulate.a = 0.3 if blink else 1.0
 		if _iframe_flash_timer <= 0.0 and _character_node:
 			_character_node.modulate = Color.WHITE
+
+	_update_magnet_targets(delta)
 
 	if state == State.DEAD:
 		velocity = Vector2.ZERO

@@ -5,8 +5,11 @@
 [ext_resource type="PackedScene" uid="uid://dtoolbar001" path="res://Scenes/toolbar.tscn" id="3_toolbar"]
 
 [node name="World" type="Node2D" unique_id=727410167]
+y_sort_enabled = true
 
 [node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=1979626793]
+y_sort_enabled = false
+z_index = -1
 tile_set = ExtResource("1_emx41")
 
 [node name="Player" parent="." unique_id=1916979783 instance=ExtResource("2_dlwip")]

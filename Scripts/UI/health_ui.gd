@@ -20,7 +20,6 @@ const EMPTY_HEART_RECT: Rect2 = Rect2(16, 0, 16, 16)
 
 var _icons_texture: Texture2D
 var _full_heart_tex: AtlasTexture
-var _half_heart_tex: AtlasTexture   # full heart with half-dim overlay
 var _empty_heart_tex: AtlasTexture
 
 var _container: HBoxContainer
@@ -46,11 +45,11 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _shake_timer > 0.0:
 		_shake_timer -= delta
-		var offset = Vector2(
+		var shake_offset = Vector2(
 			randf_range(-_shake_intensity, _shake_intensity),
 			randf_range(-_shake_intensity, _shake_intensity)
 		)
-		_container.position = _original_position + offset
+		_container.position = _original_position + shake_offset
 		if _shake_timer <= 0.0:
 			_container.position = _original_position
 
@@ -139,6 +138,7 @@ func _connect_health_system() -> void:
 
 
 func _on_health_changed(current_hp: int, max_hp: int) -> void:
+	@warning_ignore("integer_division")
 	_max_hearts = max_hp / 2
 	_current_half_hearts = current_hp
 	if _heart_icons.size() != _max_hearts:

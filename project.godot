@@ -22,10 +22,9 @@ PauseMenu="*res://Scripts/pause_menu.gd"
 
 [display]
 
+window/stretch/mode="canvas_items"
 mouse_cursor/custom_image="res://Assets/Cute_Fantasy_UI/UI/cursor_crosshair.png"
 mouse_cursor/custom_image_hotspot=Vector2(8, 8)
-
-window/stretch/mode="canvas_items"
 
 [dotnet]
 

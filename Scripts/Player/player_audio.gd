@@ -16,8 +16,8 @@ var _jump_sounds: Array[AudioStream] = []
 var _roll_sounds: Array[AudioStream] = []
 var _axe_chop_sounds: Array[AudioStream] = []
 var _axe_swing_sounds: Array[AudioStream] = []
-var _pickaxe_hit_sounds: Array[AudioStream] = []
 var _pickaxe_swing_sounds: Array[AudioStream] = []
+var _ore_hit_sounds: Array[AudioStream] = []
 var _tool_swing_sounds: Array[AudioStream] = []
 
 var _land_sound: AudioStream
@@ -72,8 +72,8 @@ func play_pickaxe_swing() -> void:
 	_play_random(_sfx_tool, _pickaxe_swing_sounds, 0.0, 1.0, 1.2)
 
 
-func play_pickaxe_hit() -> void:
-	_play_random(_sfx_tool, _pickaxe_hit_sounds)
+func play_ore_hit() -> void:
+	_play_random(_sfx_tool, _ore_hit_sounds, 0.0, 0.85, 1.15)
 
 
 func play_tool_swing() -> void:
@@ -139,10 +139,10 @@ func _load_sounds() -> void:
 	_footstep_sounds = _load_bank("res://Assets/Audio/SFX/Footsteps/step_%d.ogg", range(1, 5))
 	_sword_sounds = _load_bank("res://Assets/Audio/SFX/Sword/sword_swing_%d.wav", range(1, 4))
 	_roll_sounds = _load_bank("res://Assets/Audio/SFX/OGG/cloth%d.ogg", range(1, 5))
-	_axe_chop_sounds = _load_bank("res://Assets/Audio/SFX/Tools/axe_chop_%d.ogg", range(1, 4))
-	_pickaxe_hit_sounds = _load_bank("res://Assets/Audio/SFX/Tools/pickaxe_hit_%d.ogg", range(1, 4))
+	_axe_chop_sounds = _load_bank("res://Assets/Audio/SFX/Tools/axe_chop_%d.ogg", range(1, 6))
 	_axe_swing_sounds = _load_bank("res://Assets/Audio/SFX/Weapons/swing_%d.wav", [5, 6, 7, 8, 9])
 	_pickaxe_swing_sounds = _load_bank("res://Assets/Audio/SFX/Weapons/swing_light_%d.wav", range(1, 5))
+	_ore_hit_sounds = _load_bank("res://Assets/Audio/SFX/Tools/ore_hit_%d.ogg", range(1, 6))
 	_tool_swing_sounds = _pickaxe_swing_sounds
 
 	var js = load("res://Assets/Audio/SFX/Player/jump_grass.wav")

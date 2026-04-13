@@ -338,6 +338,8 @@ _data = {
 size = Vector2(11, 7)
 
 [node name="Chloe" type="CharacterBody2D" unique_id=1514672112]
+collision_layer = 4
+collision_mask = 9
 
 [node name="Node2D" type="Node2D" parent="." unique_id=1096125458]
 

@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3 uid="uid://bulwft0c2d783"]
+
+[ext_resource type="Texture2D" uid="uid://g0kapfgvecf3" path="res://Assets/Cute_Fantasy/arrow.png" id="1_77nlu"]
+[ext_resource type="Script" path="res://Scripts/Weapons/arrow.gd" id="2_arrow"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_c7yig"]
+size = Vector2(13, 3)
+
+[node name="Arrow" type="Area2D" unique_id=832637062]
+collision_layer = 64
+collision_mask = 10
+script = ExtResource("2_arrow")
+
+[node name="arrow" type="Sprite2D" parent="." unique_id=1651089370]
+texture_filter = 1
+texture = ExtResource("1_77nlu")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=833213599]
+position = Vector2(0.5, -0.5)
+shape = SubResource("RectangleShape2D_c7yig")
+
+[connection signal="area_entered" from="." to="." method="_on_area_entered"]
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]

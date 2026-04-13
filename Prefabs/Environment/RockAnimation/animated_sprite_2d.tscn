@@ -1,0 +1,70 @@
+[gd_scene format=3 uid="uid://b7c8j36rx7ljs"]
+
+[ext_resource type="Texture2D" uid="uid://dwy6reuwsmja7" path="res://Assets/Cute_Fantasy/Outdoor decoration/Outdoor_Decor_Animations/Rock_Animations/Rock_1_Anim.png" id="1_egiao"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i1fbl"]
+atlas = ExtResource("1_egiao")
+region = Rect2(0, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_14kbh"]
+atlas = ExtResource("1_egiao")
+region = Rect2(16, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_78jlc"]
+atlas = ExtResource("1_egiao")
+region = Rect2(32, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kfrdh"]
+atlas = ExtResource("1_egiao")
+region = Rect2(48, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jw713"]
+atlas = ExtResource("1_egiao")
+region = Rect2(64, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_8mjd8"]
+atlas = ExtResource("1_egiao")
+region = Rect2(80, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_g0sr6"]
+atlas = ExtResource("1_egiao")
+region = Rect2(96, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nib6q"]
+atlas = ExtResource("1_egiao")
+region = Rect2(112, 0, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_nrd4k"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_i1fbl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_14kbh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_78jlc")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kfrdh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jw713")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_8mjd8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_g0sr6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nib6q")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" unique_id=282595101]
+sprite_frames = SubResource("SpriteFrames_nrd4k")

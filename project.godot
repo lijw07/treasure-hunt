@@ -11,17 +11,21 @@ config_version=5
 [application]
 
 config/name="TreasureHunt"
-run/main_scene="res://Scene/main_menu_scene.tscn"
+run/main_scene="res://Scenes/main_menu_scene.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
 
-InputManager="*res://Scripts/input_manager.gd"
+InputManager="*res://Scripts/Autoload/input_manager.gd"
 
 [display]
 
 window/stretch/mode="canvas_items"
+
+[dotnet]
+
+project/assembly_name="TreasureHunt"
 
 [editor_plugins]
 
@@ -60,9 +64,21 @@ shoot={
 ]
 }
 
+[layer_names]
+
+2d_physics/layer_1="Player"
+2d_physics/layer_2="Enemy"
+2d_physics/layer_3="NPC"
+2d_physics/layer_4="Environment"
+2d_physics/layer_5="PlayerWeapon"
+2d_physics/layer_6="EnemyWeapon"
+2d_physics/layer_7="Projectile"
+2d_physics/layer_8="Interactable"
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
+common/physics_interpolation=true
 
 [rendering]
 

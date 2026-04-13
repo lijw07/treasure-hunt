@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://b2q7kxg5kwbhy"]
+
+[ext_resource type="TileSet" uid="uid://bqr7sb656bdqb" path="res://TileSets/new_tile_set.tres" id="1_emx41"]
+[ext_resource type="PackedScene" uid="uid://cpbt4eoxba3h" path="res://Prefabs/Player/player.tscn" id="2_dlwip"]
+[ext_resource type="PackedScene" uid="uid://dtoolbar001" path="res://Scenes/toolbar.tscn" id="3_toolbar"]
+
+[node name="World" type="Node2D" unique_id=727410167]
+
+[node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=1979626793]
+tile_set = ExtResource("1_emx41")
+
+[node name="Player" parent="." unique_id=1916979783 instance=ExtResource("2_dlwip")]
+
+[node name="Toolbar" parent="." instance=ExtResource("3_toolbar")]

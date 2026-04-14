@@ -3,10 +3,10 @@
 [ext_resource type="PackedScene" uid="uid://b0mfkpbnqy7ea" path="res://Scenes/grass_biome.tscn" id="1_ground"]
 [ext_resource type="PackedScene" uid="uid://cpbt4eoxba3h" path="res://Prefabs/Player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dtoolbar001" path="res://Scenes/toolbar.tscn" id="3_toolbar"]
-[ext_resource type="PackedScene" path="res://Prefabs/Environment/Ores/amber_ore.tscn" id="4_bwjpn"]
-[ext_resource type="PackedScene" path="res://Prefabs/Environment/Ores/amethyst_ore.tscn" id="5_ibmi3"]
-[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Skeleton_Mage.tscn" id="18_733rx"]
-[ext_resource type="PackedScene" uid="uid://uivnbxt1ta1e" path="res://Prefabs/Enemies/Skeleton_Swordman.tscn" id="19_kmsc6"]
+[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Mummy.tscn" id="12_4blnk"]
+[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Bombschroom.tscn" id="12_tnimv"]
+[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Desert_Warrior_Atgier.tscn" id="13_4qg1e"]
+[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Desert_Warrior_Bow.tscn" id="14_040rt"]
 
 [node name="TestScene" type="Node2D" unique_id=1147789957]
 y_sort_enabled = true
@@ -20,16 +20,14 @@ z_index = 2
 
 [node name="Toolbar" parent="." unique_id=507101024 instance=ExtResource("3_toolbar")]
 
-[node name="Skeleton_Mage" parent="." unique_id=1443975774 instance=ExtResource("18_733rx")]
-z_index = 2
-position = Vector2(-124, -40)
+[node name="Bombschroom" parent="." unique_id=101585327 instance=ExtResource("12_tnimv")]
+position = Vector2(-146, -45)
 
-[node name="Skeleton_Swordman" parent="." unique_id=1160573396 instance=ExtResource("19_kmsc6")]
-z_index = 2
-position = Vector2(19, -95)
+[node name="Desert_Warrior_Atgier" parent="." unique_id=1315738565 instance=ExtResource("13_4qg1e")]
+position = Vector2(59, -78)
 
-[node name="AmberOre" parent="." unique_id=523849393 instance=ExtResource("4_bwjpn")]
-position = Vector2(-27, -13)
+[node name="Desert_Warrior_Bow" parent="." unique_id=1435095043 instance=ExtResource("14_040rt")]
+position = Vector2(95, -26)
 
-[node name="AmethystOre" parent="." unique_id=1182335799 instance=ExtResource("5_ibmi3")]
-position = Vector2(54, -1)
+[node name="Mummy" parent="." unique_id=1705417854 instance=ExtResource("12_4blnk")]
+position = Vector2(108, 53)

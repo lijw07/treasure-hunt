@@ -6,7 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://btcodfmj3n8w" path="res://Prefabs/Environment/GrassAnimation/GrassAnimation3.tscn" id="3_l2h1x"]
 [ext_resource type="PackedScene" uid="uid://rewwdwvjegp1" path="res://Prefabs/Environment/Tree/OakTree.tscn" id="4_l2h1x"]
 [ext_resource type="PackedScene" path="res://Scenes/start_menu.tscn" id="5_ui"]
-[ext_resource type="Script" path="res://Scripts/UI/main_menu_scene.gd" id="6_script"]
+[ext_resource type="Script" uid="uid://bv625ebocey3n" path="res://Scripts/UI/main_menu_scene.gd" id="6_script"]
 
 [sub_resource type="Curve2D" id="Curve2D_l2h1x"]
 _data = {
@@ -189,6 +189,6 @@ position = Vector2(16, -56)
 [node name="AnimatedSprite2D5" parent="." unique_id=419368836 instance=ExtResource("2_x4ueo")]
 position = Vector2(216, -72)
 
-[node name="UILayer" type="CanvasLayer" parent="."]
+[node name="UILayer" type="CanvasLayer" parent="." unique_id=487843450]
 
-[node name="StartMenu" parent="UILayer" instance=ExtResource("5_ui")]
+[node name="StartMenu" parent="UILayer" unique_id=1379064346 instance=ExtResource("5_ui")]

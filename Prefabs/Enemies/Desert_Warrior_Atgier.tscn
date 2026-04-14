@@ -243,6 +243,7 @@ size = Vector2(14, 16)
 size = Vector2(20, 20)
 
 [node name="Desert_Warrior_Atgier" type="CharacterBody2D"]
+z_index = 2
 motion_mode = 1
 collision_layer = 2
 collision_mask = 10

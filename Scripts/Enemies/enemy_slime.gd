@@ -8,19 +8,42 @@ extends EnemyBase
 
 @export_group("Slime")
 @export var hop_height: float = 4.0
-@export var hop_speed: float = 6.0
+## How fast the hop cycle progresses.  At hop_speed = 2.0, one full
+## airborne→grounded cycle takes 1.0s (airborne ≈ 0.5s, grounded ≈ 0.5s),
+## which gives the walk/jump animation room to play through cleanly.
+@export var hop_speed: float = 2.0
+## Multiplier applied to hop_height for the visual jump arc.  Used by BOTH
+## the regular hop and the attack pounce so they look identical.
+@export var jump_arc_scale: float = 1.8
 @export var split_on_death: bool = false
 @export var split_scene: PackedScene = null
 @export var split_count: int = 2
+## Peak velocity at the apex of the arc.  Used by BOTH regular hops and
+## the attack pounce, so chase and pounce feel like the same kind of leap.
 @export var lunge_force: float = 100.0
 
 @export_group("Slime FX")
 @export var slime_color: Color = Color(0.3, 0.75, 0.25, 0.85)
 @export var splat_particle_count: int = 10
 
+@export_group("Death Gas")
+## Spawn an expanding green gas cloud that damages the player when the slime dies.
+@export var death_gas_enabled: bool = true
+@export var death_gas_damage: int = 1
+@export var death_gas_radius: float = 24.0
+## How long the damage area is active.  The visual cloud lingers slightly longer.
+@export var death_gas_damage_duration: float = 0.45
+@export var death_gas_visual_duration: float = 0.9
+@export var death_gas_particle_count: int = 40
+@export var death_gas_color: Color = Color(0.45, 0.95, 0.35, 0.7)
+
 var _hop_phase: float = 0.0       ## Tracks position in the hop cycle (0..1 per hop)
 var _hop_was_airborne: bool = false ## Tracks if we were airborne last frame (for landing FX)
 var _hop_direction: Vector2 = Vector2.ZERO  ## Direction locked at start of each hop
+
+# ── Pounce (attack jump) state ────────────────────────────────────────────
+var _pounce_direction: Vector2 = Vector2.ZERO  ## Locked at strike moment — slime leaps toward the player
+var _pounce_active: bool = false               ## True during the airborne phase of the attack pounce
 
 
 func _physics_process(delta: float) -> void:
@@ -31,30 +54,91 @@ func _physics_process(delta: float) -> void:
 	if not _is_dead and _state in [State.WANDER, State.CHASE]:
 		_hop_phase += hop_speed * delta
 		var sine_val := sin(_hop_phase * PI)
-		_sprite.position.y = -abs(sine_val) * hop_height
-	elif not _is_dead:
+		# Use the unified arc helper so hops match the pounce visually.
+		_sprite.position.y = _jump_arc_y(sine_val)
+	elif not _is_dead and _state != State.ATTACK:
+		# ATTACK handles its own sprite Y (pounce arc); let other states settle.
 		_sprite.position.y = lerp(_sprite.position.y, 0.0, 10.0 * delta)
+
+	# Hard-guarantee: slime cannot be pushed while attacking.  Any lingering
+	# knockback from a hit taken right before ATTACK started is zeroed out.
+	if _state == State.ATTACK:
+		_knockback_velocity = Vector2.ZERO
 
 	super._physics_process(delta)
 
 
 ## Compute hop velocity for this frame.  Call from state processors so the
 ## value is set before the base class's move_and_slide().
-func _apply_hop_velocity(speed: float) -> void:
+## Movement ONLY happens during the airborne phase, and each takeoff
+## re-triggers the jump ("walk") animation from frame 0 — so every hop is a
+## distinct, visible leap rather than a continuous slide + looping animation.
+##
+## The `_speed` parameter is preserved for API compatibility with the base
+## class but ignored — both regular hops and the attack pounce now use
+## `lunge_force` so chase and pounce feel like the same kind of leap.
+func _apply_hop_velocity(_speed: float) -> void:
 	var sine_val := sin(_hop_phase * PI)
 	var airborne := sine_val > 0.05
 
 	if airborne:
-		# Lock direction at the start of each hop (takeoff moment)
+		# Takeoff: lock direction, face it, and trigger a fresh jump animation.
 		if not _hop_was_airborne:
 			_hop_direction = _get_move_direction()
 			_update_facing(_hop_direction)
-		# Scale speed by the arc height so movement peaks mid-jump
-		velocity = _hop_direction * speed * clampf(sine_val, 0.0, 1.0)
+			_trigger_jump_anim()
+		# Unified arc velocity — same formula as the pounce.
+		velocity = _jump_arc_velocity(_hop_direction, sine_val)
 	else:
 		velocity = Vector2.ZERO
+		# Landing: switch to idle between hops so the slime visibly pauses.
+		if _hop_was_airborne:
+			_play_grounded_anim()
 
 	_hop_was_airborne = airborne
+
+
+# ── Unified jump arc — single source of truth for hops AND pounce ─────────
+# Both the regular hop cycle (wander/chase) and the attack pounce route
+# their sprite Y and velocity through these helpers.  Tweaking hop_height,
+# jump_arc_scale, or lunge_force changes both the same way, so the slime's
+# leap reads as one consistent motion regardless of intent.
+
+func _jump_arc_y(sine_val: float) -> float:
+	## Sprite Y offset for a sine arc.  sine_val is sin(phase * PI) ∈ [-1, 1].
+	return -absf(sine_val) * hop_height * jump_arc_scale
+
+
+func _jump_arc_velocity(direction: Vector2, sine_val: float) -> Vector2:
+	## Horizontal velocity for the airborne phase, peaking at the arc apex.
+	return direction * lunge_force * clampf(absf(sine_val), 0.0, 1.0)
+
+
+## Restart the jump/walk animation from the beginning so every hop is a
+## fresh, clearly-triggered animation cycle.  The animation's playback rate
+## is scaled so it completes in exactly one airborne arc — keeps the visual
+## jump in sync with the actual hop motion at any hop_speed setting.
+func _trigger_jump_anim() -> void:
+	var anim := "walk"
+	if not _anim_player.has_animation(anim):
+		return
+	# Airborne arc length in seconds: half the full sine cycle.
+	# Full cycle (sin going 0→2π) takes 2/hop_speed sec, so airborne ≈ 1/hop_speed.
+	var airborne_dur := 1.0 / maxf(hop_speed, 0.001)
+	var anim_len := _anim_player.get_animation(anim).length
+	if anim_len > 0.0 and airborne_dur > 0.0:
+		_anim_player.speed_scale = anim_len / airborne_dur
+	else:
+		_anim_player.speed_scale = 1.0
+	_anim_player.stop()
+	_anim_player.play(anim)
+
+
+## Play the grounded/idle animation between hops at normal speed.
+func _play_grounded_anim() -> void:
+	_anim_player.speed_scale = 1.0
+	if _anim_player.has_animation("idle") and _anim_player.current_animation != "idle":
+		_anim_player.play("idle")
 
 
 ## Returns the direction the slime should hop toward based on its current state.
@@ -83,8 +167,8 @@ func _process_chase(_delta: float) -> void:
 		_enter_attack()
 		return
 
+	# Animation is driven by the hop cycle (takeoff → walk/jump, land → idle).
 	_apply_hop_velocity(chase_speed)
-	_play_directional_anim("walk")
 
 
 func _process_wander(delta: float) -> void:
@@ -97,50 +181,121 @@ func _process_wander(delta: float) -> void:
 	if get_slide_collision_count() > 0:
 		_walk_direction = -_walk_direction.rotated(randf_range(-PI / 2, PI / 2))
 		_update_facing(_walk_direction)
-		_play_directional_anim("walk")
 
 	if global_position.distance_to(_spawn_position) > wander_radius:
 		_walk_direction = (_spawn_position - global_position).normalized()
 		_update_facing(_walk_direction)
-		_play_directional_anim("walk")
 
 	if _timer <= 0.0:
 		_enter_idle()
 		return
 
+	# Animation is driven by the hop cycle (takeoff → walk/jump, land → idle).
 	_apply_hop_velocity(move_speed)
 
 
 # ── Override: non-directional animations ──────────────────────────────────
 
 func _play_directional_anim(base_name: String) -> void:
-	# Slimes have no directional variants — just play the base animation
+	# Slimes have no directional variants — just play the base animation.
+	# Reset speed_scale so animations triggered by the base state machine
+	# (idle on entering IDLE, attack on entering ATTACK, etc.) play at
+	# normal speed even if the hop trigger left a custom scale set.
 	if _anim_player.has_animation(base_name):
 		if _anim_player.current_animation != base_name:
+			_anim_player.speed_scale = 1.0
 			_anim_player.play(base_name)
 	elif _anim_player.has_animation("idle"):
 		if _anim_player.current_animation != "idle":
+			_anim_player.speed_scale = 1.0
 			_anim_player.play("idle")
 
 
 func _play_anim(anim_name: String) -> void:
 	if _anim_player.has_animation(anim_name):
+		# Reset to normal playback rate — _trigger_jump_anim mutates speed_scale
+		# to sync the walk anim with the hop arc, and we don't want that
+		# bleeding into attack/death/hurt animations.
+		_anim_player.speed_scale = 1.0
 		_anim_player.play(anim_name)
 
 
-# ── Override: lunge attack ────────────────────────────────────────────────
+# ── Override: pounce attack — slime jumps onto the player's collision ─────
 
+## Called at the moment the strike lands (after windup).  Lock the pounce
+## direction toward the player and begin the airborne leap.
 func _on_attack_start() -> void:
 	super._on_attack_start()
 	_spawn_splat_fx()
-	# Lunge toward player
+	_pounce_active = true
 	if _player and is_instance_valid(_player):
-		var dir := (_player.global_position - global_position).normalized()
-		_knockback_velocity = dir * lunge_force
+		_pounce_direction = (_player.global_position - global_position).normalized()
+		_update_facing(_pounce_direction)
+	else:
+		_pounce_direction = Vector2.ZERO
+	# No knockback-style lunge — movement is the pounce arc itself.
+	_knockback_velocity = Vector2.ZERO
+
+
+## Override the base attack processor so the slime actually JUMPS onto the
+## player instead of standing still with a decaying knockback shove.
+## During windup: plant on ground, face the player.
+## During strike: arc through the air toward the player.
+func _process_attack(delta: float) -> void:
+	_timer -= delta
+
+	# Windup phase — telegraph the attack, stay grounded.
+	if not _attack_struck:
+		_windup_remaining -= delta
+		velocity = Vector2.ZERO
+		_sprite.position.y = lerp(_sprite.position.y, 0.0, 10.0 * delta)
+		if _player and is_instance_valid(_player):
+			_update_facing((_player.global_position - global_position).normalized())
+		if _windup_remaining <= 0.0:
+			_attack_struck = true
+			_on_attack_start()
+	else:
+		# Strike phase — single jump arc toward the player.
+		# t goes 0 → 1 over the attack_duration window, same shape as a hop.
+		var t := 1.0 - clampf(_timer / maxf(attack_duration, 0.001), 0.0, 1.0)
+		var sine_val := sin(t * PI)
+		# Routed through the same helpers as a regular hop, so the pounce
+		# arc and movement match the slime's normal leap exactly.
+		_sprite.position.y = _jump_arc_y(sine_val)
+		if sine_val > 0.05 and _pounce_direction != Vector2.ZERO:
+			velocity = _jump_arc_velocity(_pounce_direction, sine_val)
+		else:
+			velocity = Vector2.ZERO
+
+	# Extra belt-and-braces: no pushback can accumulate mid-pounce.
+	_knockback_velocity = Vector2.ZERO
+
+	if _timer <= 0.0:
+		_end_attack()
+		_attack_timer = attack_cooldown
+		_sprite.position.y = 0.0
+		if _player and _can_see_player():
+			_enter_chase()
+		else:
+			_enter_idle()
+
+
+# ── Override: invulnerable while attacking/pouncing ───────────────────────
+# When the slime is mid-pounce on the player, the player's swing shouldn't
+# damage or knock it back — slimes use their body as the weapon, so the
+# pounce phase is treated as their "armoured" frames.  The knockback clear
+# in _physics_process / _process_attack handles any lingering push from a
+# hit the slime absorbed the frame it entered ATTACK.
+func take_damage(amount: int = 1) -> void:
+	if _state == State.ATTACK:
+		return
+	super.take_damage(amount)
 
 
 func _end_attack() -> void:
 	super._end_attack()
+	_pounce_active = false
+	_pounce_direction = Vector2.ZERO
 	_spawn_splat_fx()
 
 
@@ -162,6 +317,11 @@ func _update_facing(dir: Vector2) -> void:
 # ── Override: death with optional split ───────────────────────────────────
 
 func _on_death_complete() -> void:
+	# Death gas first — fires before split so the cloud is centred on the
+	# original slime, not displaced by the spawn positions of the children.
+	if death_gas_enabled:
+		_spawn_death_gas_explosion()
+
 	if split_on_death and split_scene:
 		for i in range(split_count):
 			var child := split_scene.instantiate() as Node2D
@@ -206,3 +366,97 @@ func _spawn_splat_fx() -> void:
 	p.restart()
 	p.emitting = true
 	get_tree().create_timer(0.6).timeout.connect(p.queue_free)
+
+
+# ── Death gas explosion ───────────────────────────────────────────────────
+## Spawns an expanding green gas cloud that:
+##   - Damages the player on contact via an Area2D in "enemy_weapon" group
+##     (same channel the player_hurtbox already listens for).
+##   - Renders a billowing GPUParticles2D cloud that drifts upward and fades.
+## The container is parented to the slime's parent so it survives the slime's
+## queue_free() that fires immediately after _on_death_complete().
+func _spawn_death_gas_explosion() -> void:
+	var parent := get_parent()
+	if parent == null:
+		return
+
+	var container := Node2D.new()
+	container.z_index = 3
+	parent.add_child(container)
+	container.global_position = global_position
+
+	# ── Damage hitbox ────────────────────────────────────────────────────
+	var dmg_area := Area2D.new()
+	dmg_area.add_to_group("enemy_weapon")
+	dmg_area.collision_layer = LAYER_ENEMY_WEAPON   # 32 — what player_hurtbox masks
+	dmg_area.collision_mask  = LAYER_PLAYER         # 1  — only damages the player
+	dmg_area.set("damage", death_gas_damage)
+	dmg_area.monitoring = true
+	dmg_area.monitorable = true
+
+	var shape_node := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = death_gas_radius
+	shape_node.shape = circle
+	dmg_area.add_child(shape_node)
+	container.add_child(dmg_area)
+
+	# ── Gas particles ────────────────────────────────────────────────────
+	var p := GPUParticles2D.new()
+	p.emitting = false
+	p.one_shot = true
+	p.explosiveness = 0.85
+	p.amount = clampi(death_gas_particle_count, 4, 128)
+	p.lifetime = death_gas_visual_duration
+
+	var mat := ParticleProcessMaterial.new()
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	mat.emission_sphere_radius = 4.0
+	mat.direction = Vector3(0, -0.4, 0)
+	mat.spread = 180.0
+	mat.initial_velocity_min = 35.0
+	mat.initial_velocity_max = 95.0
+	mat.gravity = Vector3(0, -10, 0)   # Gas drifts upward
+	mat.damping_min = 10.0
+	mat.damping_max = 22.0
+	mat.scale_min = 2.0
+	mat.scale_max = 5.0
+	mat.color = death_gas_color
+
+	var alpha_curve := CurveTexture.new()
+	var ac := Curve.new()
+	ac.add_point(Vector2(0.0, 0.0))
+	ac.add_point(Vector2(0.12, 0.95))
+	ac.add_point(Vector2(0.6, 0.7))
+	ac.add_point(Vector2(1.0, 0.0))
+	alpha_curve.curve = ac
+	mat.alpha_curve = alpha_curve
+
+	var scale_curve := CurveTexture.new()
+	var sc := Curve.new()
+	sc.add_point(Vector2(0.0, 0.4))
+	sc.add_point(Vector2(0.5, 1.2))
+	sc.add_point(Vector2(1.0, 1.7))
+	scale_curve.curve = sc
+	mat.scale_curve = scale_curve
+
+	p.process_material = mat
+	container.add_child(p)
+	p.restart()
+	p.emitting = true
+
+	# Stop dealing damage after the active window so residual smoke
+	# can't keep ticking the player's i-frames as it lingers.
+	var disable_timer := get_tree().create_timer(death_gas_damage_duration)
+	disable_timer.timeout.connect(func() -> void:
+		if is_instance_valid(dmg_area):
+			dmg_area.set_deferred("monitoring", false)
+			dmg_area.set_deferred("monitorable", false)
+	)
+
+	# Tear down the whole effect once the visual cloud has fully faded.
+	var cleanup_timer := get_tree().create_timer(death_gas_visual_duration + 0.2)
+	cleanup_timer.timeout.connect(func() -> void:
+		if is_instance_valid(container):
+			container.queue_free()
+	)

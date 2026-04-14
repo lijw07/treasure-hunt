@@ -18304,42 +18304,42 @@ texture_filter = 1
 texture = ExtResource("1_hck1p")
 hframes = 9
 vframes = 56
-frame = 110
+frame = 261
 
 [node name="Hand" type="Sprite2D" parent="Character" unique_id=1604769681]
 texture_filter = 1
 texture = ExtResource("2_juxdh")
 hframes = 9
 vframes = 56
-frame = 110
+frame = 261
 
 [node name="Head" type="Sprite2D" parent="Character" unique_id=212397481]
 texture_filter = 1
 texture = ExtResource("3_4qbli")
 hframes = 9
 vframes = 56
-frame = 110
+frame = 261
 
 [node name="Chest" type="Sprite2D" parent="Character" unique_id=411928139]
 texture_filter = 1
 texture = ExtResource("4_08u7w")
 hframes = 9
 vframes = 56
-frame = 110
+frame = 261
 
 [node name="Leg" type="Sprite2D" parent="Character" unique_id=2045293399]
 texture_filter = 1
 texture = ExtResource("5_kgmex")
 hframes = 9
 vframes = 56
-frame = 110
+frame = 261
 
 [node name="Feet" type="Sprite2D" parent="Character" unique_id=1901480609]
 texture_filter = 1
 texture = ExtResource("6_2xbkd")
 hframes = 9
 vframes = 56
-frame = 110
+frame = 261
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="Character" unique_id=484241764]
 root_node = NodePath("../..")

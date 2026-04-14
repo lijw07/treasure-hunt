@@ -3,10 +3,9 @@
 [ext_resource type="PackedScene" uid="uid://b0mfkpbnqy7ea" path="res://Scenes/grass_biome.tscn" id="1_ground"]
 [ext_resource type="PackedScene" uid="uid://cpbt4eoxba3h" path="res://Prefabs/Player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dtoolbar001" path="res://Scenes/toolbar.tscn" id="3_toolbar"]
-[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Mummy.tscn" id="12_4blnk"]
-[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Bombschroom.tscn" id="12_tnimv"]
-[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Desert_Warrior_Atgier.tscn" id="13_4qg1e"]
-[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Desert_Warrior_Bow.tscn" id="14_040rt"]
+[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Slime_Big_Green.tscn" id="4_hb2xm"]
+[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Slime_Medium_Green.tscn" id="5_x033f"]
+[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Slime_Small_Green.tscn" id="6_rdbpf"]
 
 [node name="TestScene" type="Node2D" unique_id=1147789957]
 y_sort_enabled = true
@@ -20,14 +19,11 @@ z_index = 2
 
 [node name="Toolbar" parent="." unique_id=507101024 instance=ExtResource("3_toolbar")]
 
-[node name="Bombschroom" parent="." unique_id=101585327 instance=ExtResource("12_tnimv")]
-position = Vector2(-146, -45)
+[node name="Slime_Big_Green" parent="." unique_id=1240418023 instance=ExtResource("4_hb2xm")]
+position = Vector2(85, -53)
 
-[node name="Desert_Warrior_Atgier" parent="." unique_id=1315738565 instance=ExtResource("13_4qg1e")]
-position = Vector2(59, -78)
+[node name="Slime_Medium_Green" parent="." unique_id=566078342 instance=ExtResource("5_x033f")]
+position = Vector2(-112, -47)
 
-[node name="Desert_Warrior_Bow" parent="." unique_id=1435095043 instance=ExtResource("14_040rt")]
-position = Vector2(95, -26)
-
-[node name="Mummy" parent="." unique_id=1705417854 instance=ExtResource("12_4blnk")]
-position = Vector2(108, 53)
+[node name="Slime_Small_Green" parent="." unique_id=1023167457 instance=ExtResource("6_rdbpf")]
+position = Vector2(126, 58)

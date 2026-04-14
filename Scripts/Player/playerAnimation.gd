@@ -22,8 +22,10 @@ func _process(_delta: float) -> void:
 			_play_once("jump_" + controller.facing)
 		controller.State.ATTACK:
 			_play_once(controller.attack_anim_name)
+		controller.State.STUN:
+			_play_once("idle_" + controller.facing)
 		controller.State.DEAD:
-			pass
+			pass  # Handled by _on_died() in the controller
 
 
 func _play(anim_name: String) -> void:

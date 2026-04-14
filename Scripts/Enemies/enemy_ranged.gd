@@ -23,15 +23,26 @@ func _ready() -> void:
 		_magic_scene = load("res://Prefabs/Enemies/Mage_Projectile.tscn")
 
 
-func _process_chase(delta: float) -> void:
+func _process_chase(_delta: float) -> void:
 	if not _player or not is_instance_valid(_player):
 		_player = null
+		_damage_aggro = false
 		_enter_idle()
 		return
 
 	var dist := global_position.distance_to(_player.global_position)
 
-	if dist > lose_interest_radius:
+	# When aggro'd by damage, chase much further before giving up.
+	# Once close enough for normal detection, clear the aggro flag.
+	if _damage_aggro:
+		if dist <= detection_radius:
+			_damage_aggro = false
+		elif dist > lose_interest_radius * 3.0:
+			_damage_aggro = false
+			_player = null
+			_enter_idle()
+			return
+	elif dist > lose_interest_radius:
 		_player = null
 		_enter_idle()
 		return
@@ -81,7 +92,7 @@ func _spawn_projectile(dir: Vector2) -> void:
 		# Absolute fallback: use weapon area for burst damage
 		if _weapon:
 			_weapon.set("damage", projectile_damage)
-			_weapon.monitoring = true
+			_weapon.set_deferred("monitoring", true)
 		return
 
 	var proj := scene.instantiate()

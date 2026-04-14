@@ -1,12 +1,10 @@
 [gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Enemies/enemy_projectile.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://g0kapfgvecf3" path="res://Assets/Cute_Fantasy/arrow.png" id="2_arrow_tex"]
 
-[sub_resource type="CircleShape2D" id="Circle_arrow"]
-radius = 4.0
-
-[sub_resource type="RectangleShape2D" id="Rect_arrow_visual"]
-size = Vector2(8, 3)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_earrow"]
+size = Vector2(13, 3)
 
 [node name="Enemy_Arrow" type="Area2D"]
 collision_layer = 32
@@ -17,9 +15,10 @@ max_distance = 220.0
 damage = 1
 projectile_color = Color(0.85, 0.75, 0.55, 1.0)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("Circle_arrow")
+[node name="ArrowSprite" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_arrow_tex")
 
-[node name="ArrowSprite" type="Polygon2D" parent="."]
-color = Color(0.55, 0.4, 0.25, 1.0)
-polygon = PackedVector2Array(-5, -1.5, 5, 0, -5, 1.5)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0.5, -0.5)
+shape = SubResource("RectangleShape2D_earrow")

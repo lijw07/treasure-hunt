@@ -12,7 +12,7 @@ region = Rect2(96, 0, 16, 16)
 
 [node name="IronOre" type="StaticBody2D"]
 y_sort_enabled = true
-collision_layer = 2
+collision_layer = 8
 collision_mask = 0
 script = ExtResource("2_resnode")
 resource_type = "rock"

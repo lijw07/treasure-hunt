@@ -9,6 +9,7 @@ extends Area2D
 
 var _direction: Vector2 = Vector2.DOWN
 var _traveled: float = 0.0
+var _hit_sounds: Array[AudioStream] = []
 
 
 func setup(dir: Vector2, spd: float = -1.0, dmg: int = -1) -> void:
@@ -23,8 +24,12 @@ func setup(dir: Vector2, spd: float = -1.0, dmg: int = -1) -> void:
 
 func _ready() -> void:
 	add_to_group("enemy_weapon")
+	# Enforce collision layers — only interact with the player, never enemies
+	collision_layer = 32   # Layer 6: enemy weapons
+	collision_mask  = 1    # Layer 1: player body only
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
+	_load_hit_sounds()
 
 
 func _physics_process(delta: float) -> void:
@@ -36,8 +41,15 @@ func _physics_process(delta: float) -> void:
 
 
 func _on_body_entered(body: Node2D) -> void:
+	# Skip ALL enemies (including the one that fired us) and enemy-owned nodes
 	if body.is_in_group("enemies"):
 		return
+	var node := body.get_parent()
+	while node != null:
+		if node.is_in_group("enemies"):
+			return
+		node = node.get_parent()
+
 	if body.is_in_group("player") or body.name == "Player":
 		if body.has_method("take_damage"):
 			body.take_damage(damage)
@@ -45,9 +57,15 @@ func _on_body_entered(body: Node2D) -> void:
 
 
 func _on_area_entered(area: Area2D) -> void:
-	# Skip enemy hurtboxes — don't deal friendly fire
-	if area.is_in_group("enemy_hurtbox"):
+	# Skip anything enemy-owned — prevents friendly fire and self-damage
+	if area.is_in_group("enemy_hurtbox") or area.is_in_group("enemy_weapon"):
 		return
+	var node := area.get_parent()
+	while node != null:
+		if node.is_in_group("enemies"):
+			return
+		node = node.get_parent()
+
 	if area.is_in_group("player_hurtbox"):
 		var player = area.get_parent()
 		if player and player.has_method("take_damage"):
@@ -59,7 +77,30 @@ func _impact() -> void:
 	set_physics_process(false)
 	set_deferred("monitoring", false)
 	_spawn_impact_fx()
+	_play_impact_sound()
 	queue_free()
+
+
+func _load_hit_sounds() -> void:
+	for i in range(1, 6):
+		var s = load("res://Assets/Audio/SFX/Weapons/arrow_hit_%d.ogg" % i)
+		if s:
+			_hit_sounds.append(s)
+
+
+func _play_impact_sound() -> void:
+	if _hit_sounds.is_empty():
+		return
+	var sfx := AudioStreamPlayer2D.new()
+	sfx.stream = _hit_sounds[randi() % _hit_sounds.size()]
+	sfx.pitch_scale = randf_range(0.9, 1.15)
+	sfx.volume_db = -4.0
+	sfx.max_distance = 400
+	sfx.bus = "Master"
+	get_parent().add_child(sfx)
+	sfx.global_position = global_position
+	sfx.play()
+	sfx.finished.connect(sfx.queue_free)
 
 
 func _spawn_impact_fx() -> void:

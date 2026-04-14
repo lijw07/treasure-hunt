@@ -1,9 +1,12 @@
 extends Node
 
-signal health_changed(current_half_hearts: int, max_half_hearts: int)
+signal health_changed(current_hp: int, max_hp: int)
 signal damage_taken(amount: int)
 signal healed(amount: int)
 signal died
+
+## Each heart container holds 2 HP (full → half → empty).
+const HP_PER_HEART: int = 2
 
 @export var max_hearts: int = 5
 @export var invincibility_duration: float = 1.0
@@ -15,7 +18,7 @@ var _is_dead: bool = false
 
 
 func _ready() -> void:
-	_max_hp = max_hearts * 2
+	_max_hp = max_hearts * HP_PER_HEART
 	_current_hp = _max_hp
 
 
@@ -24,7 +27,7 @@ func _physics_process(delta: float) -> void:
 		_invincible_timer -= delta
 
 
-func take_damage(half_hearts: int = 1) -> bool:
+func take_damage(amount: int = 1) -> bool:
 	if _is_dead:
 		return false
 	if _invincible_timer > 0.0:
@@ -34,9 +37,9 @@ func take_damage(half_hearts: int = 1) -> bool:
 	if parent and parent.get("invincible"):
 		return false
 
-	_current_hp = maxi(_current_hp - half_hearts, 0)
+	_current_hp = maxi(_current_hp - amount, 0)
 	_invincible_timer = invincibility_duration
-	damage_taken.emit(half_hearts)
+	damage_taken.emit(amount)
 	health_changed.emit(_current_hp, _max_hp)
 
 	if _current_hp <= 0:
@@ -45,11 +48,11 @@ func take_damage(half_hearts: int = 1) -> bool:
 	return true
 
 
-func heal(half_hearts: int = 1) -> void:
+func heal(amount: int = 1) -> void:
 	if _is_dead:
 		return
 	var before = _current_hp
-	_current_hp = mini(_current_hp + half_hearts, _max_hp)
+	_current_hp = mini(_current_hp + amount, _max_hp)
 	var actual = _current_hp - before
 	if actual > 0:
 		healed.emit(actual)
@@ -62,8 +65,8 @@ func heal_full() -> void:
 
 func add_heart_container() -> void:
 	max_hearts += 1
-	_max_hp = max_hearts * 2
-	_current_hp = mini(_current_hp + 2, _max_hp)
+	_max_hp = max_hearts * HP_PER_HEART
+	_current_hp = mini(_current_hp + HP_PER_HEART, _max_hp)
 	health_changed.emit(_current_hp, _max_hp)
 
 

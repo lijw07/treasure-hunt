@@ -12,12 +12,7 @@
 [ext_resource type="PackedScene" path="res://Prefabs/Environment/Ores/ruby_ore.tscn" id="10_dhrl2"]
 [ext_resource type="PackedScene" path="res://Prefabs/Environment/Ores/sapphire_ore.tscn" id="11_i0miu"]
 [ext_resource type="PackedScene" path="res://Prefabs/Enemies/Skeleton_Mage.tscn" id="18_733rx"]
-[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Skeleton_Swordman.tscn" id="19_kmsc6"]
-[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Slime_Big_Green.tscn" id="20_ajhoy"]
-[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Slime_Medium_Green.tscn" id="21_68bto"]
-[ext_resource type="PackedScene" path="res://Prefabs/Animals/Cow.tscn" id="21_nr7vh"]
-[ext_resource type="PackedScene" path="res://Prefabs/Enemies/Slime_Small_Green.tscn" id="22_bbo1y"]
-[ext_resource type="PackedScene" uid="uid://dn2hswsdjd00i" path="res://Prefabs/Animals/Chicken.tscn" id="22_gfwg5"]
+[ext_resource type="PackedScene" uid="uid://uivnbxt1ta1e" path="res://Prefabs/Enemies/Skeleton_Swordman.tscn" id="19_kmsc6"]
 
 [node name="TestScene" type="Node2D" unique_id=1147789957]
 y_sort_enabled = true
@@ -55,23 +50,9 @@ position = Vector2(74, -35)
 [node name="SapphireOre" parent="." unique_id=1127800580 instance=ExtResource("11_i0miu")]
 position = Vector2(83, -1)
 
-[node name="Chicken" parent="." unique_id=1285473589 instance=ExtResource("22_gfwg5")]
-position = Vector2(-4, -26)
+[node name="Skeleton_Mage" parent="." unique_id=1443975774 instance=ExtResource("18_733rx")]
+position = Vector2(-124, -40)
+max_health = 6
 
-[node name="Cow" parent="." unique_id=440981975 instance=ExtResource("21_nr7vh")]
-position = Vector2(-37, -3)
-
-[node name="Skeleton_Mage" parent="." unique_id=1225130349 instance=ExtResource("18_733rx")]
-position = Vector2(67, -74)
-
-[node name="Skeleton_Swordman" parent="." unique_id=1766613517 instance=ExtResource("19_kmsc6")]
-position = Vector2(-30, -73)
-
-[node name="Slime_Big_Green" parent="." unique_id=806047840 instance=ExtResource("20_ajhoy")]
-position = Vector2(115, -81)
-
-[node name="Slime_Medium_Green" parent="." unique_id=1342319726 instance=ExtResource("21_68bto")]
-position = Vector2(142, -51)
-
-[node name="Slime_Small_Green" parent="." unique_id=511816685 instance=ExtResource("22_bbo1y")]
-position = Vector2(137, 4)
+[node name="Skeleton_Swordman" parent="." unique_id=1160573396 instance=ExtResource("19_kmsc6")]
+position = Vector2(19, -95)

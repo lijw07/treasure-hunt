@@ -66,7 +66,7 @@ func _get_move_direction() -> Vector2:
 
 # ── Override: chase uses hop movement, not continuous velocity ────────────
 
-func _process_chase(delta: float) -> void:
+func _process_chase(_delta: float) -> void:
 	if not _player or not is_instance_valid(_player):
 		_player = null
 		_enter_idle()
@@ -150,11 +150,13 @@ func _update_facing(dir: Vector2) -> void:
 	if dir == Vector2.ZERO:
 		return
 	_sprite.flip_h = dir.x < 0
-	# Store facing for weapon positioning
+	# Store facing for weapon positioning — slimes keep _facing == _visual_facing
+	# because they use non-directional animations (no left→right remap needed).
 	if absf(dir.x) > absf(dir.y):
 		_facing = "right" if dir.x > 0 else "left"
 	else:
 		_facing = "down" if dir.y > 0 else "up"
+	_visual_facing = _facing
 
 
 # ── Override: death with optional split ───────────────────────────────────

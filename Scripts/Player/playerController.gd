@@ -1,17 +1,21 @@
 extends CharacterBody2D
 
-@export var move_speed: float = 120.0
-@export var dodge_speed: float = 140.0
+@export var move_speed: float = 70.0
+@export var dodge_speed: float = 110.0
 @export var dodge_duration: float = 0.5
 @export var dodge_cooldown: float = 0.4
 @export var jump_duration: float = 0.35
 @export var jump_move_factor: float = 0.25
 
+@export_group("Stun")
+@export var stun_duration: float = 0.4
+@export var stun_knockback_speed: float = 120.0
+
 @export_group("Mount")
-@export var mounted_speed: float = 160.0
+@export var mounted_speed: float = 100.0
 @export var summon_duration: float = 2.0
 
-enum State { IDLE, MOVE, DODGE, JUMP, ATTACK, DEAD }
+enum State { IDLE, MOVE, DODGE, JUMP, ATTACK, STUN, DEAD }
 
 var state: State = State.IDLE
 var facing: String = "down"
@@ -23,6 +27,8 @@ var mounted: bool = false
 var _dodge_timer: float = 0.0
 var _dodge_cooldown_timer: float = 0.0
 var _dodge_direction: Vector2 = Vector2.ZERO
+var _stun_timer: float = 0.0
+var _stun_direction: Vector2 = Vector2.ZERO
 var _jump_timer: float = 0.0
 var _jump_direction: Vector2 = Vector2.ZERO
 var _jump_start_speed: float = 0.0
@@ -220,6 +226,18 @@ func apply_knockback(kb: Vector2) -> void:
 	_knockback_velocity = kb
 
 
+func apply_stun(_from_position: Vector2) -> void:
+	if state == State.DEAD or state == State.DODGE or state == State.ATTACK:
+		return
+	# Knock backwards from the direction the player was walking
+	var move_dir := velocity.normalized() if velocity.length() > 5.0 else _facing_to_vector()
+	_stun_direction = -move_dir
+	_stun_timer = stun_duration
+	_knockback_velocity = Vector2.ZERO
+	state = State.STUN
+	_hide_all_weapons()
+
+
 func set_checkpoint(pos: Vector2) -> void:
 	_spawn_position = pos
 
@@ -233,12 +251,13 @@ func _on_died() -> void:
 	velocity = Vector2.ZERO
 	_fishing_casting = false
 	_fishing_reeling = false
+	_hide_all_weapons()
 	_set_hit_collision(false)
-	if _character_node:
-		var tw = create_tween()
-		tw.tween_property(_character_node, "modulate", Color(0.5, 0.1, 0.1, 0.6), 0.4)
+	# Wait for death animation to finish before showing game over
+	if _anim_player and _anim_player.has_animation("death"):
+		_anim_player.play("death")
+		await _anim_player.animation_finished
 	if _game_over_ui:
-		await get_tree().create_timer(0.8).timeout
 		_game_over_ui.show_game_over()
 
 
@@ -403,10 +422,14 @@ func _physics_process(delta: float) -> void:
 			_state_jump(delta)
 		State.ATTACK:
 			_state_attack(delta)
+		State.STUN:
+			_state_stun(delta)
 
 
 func _update_facing() -> void:
-	if state == State.ATTACK:
+	if state == State.STUN:
+		return
+	if state == State.ATTACK and not _bow_charging:
 		return
 
 	var diff := get_global_mouse_position() - global_position
@@ -575,8 +598,6 @@ func _state_attack(delta: float) -> void:
 	if not _weapon_hidden_this_swing and not _fishing_casting and not _fishing_reeling and _attack_timer <= WEAPON_HIDE_BEFORE_END:
 		_hide_all_weapons()
 		_weapon_hidden_this_swing = true
-		if _anim_player:
-			_anim_player.stop()
 
 	if _attack_timer <= 0.0:
 		if _fishing_casting:
@@ -590,6 +611,10 @@ func _state_attack(delta: float) -> void:
 			_advance_sword_combo()
 			return
 
+		# Safety: always disable all hitboxes when leaving ATTACK state
+		# prevents lingering weapon areas from damaging enemies while idle/moving
+		_hide_all_weapons()
+
 		_combo_window_timer = COMBO_WINDOW
 		if _get_input_direction() != Vector2.ZERO:
 			state = State.MOVE
@@ -599,6 +624,20 @@ func _state_attack(delta: float) -> void:
 
 	velocity = Vector2.ZERO
 	move_and_slide()
+
+
+func _state_stun(delta: float) -> void:
+	_stun_timer -= delta
+	var progress := clampf(_stun_timer / stun_duration, 0.0, 1.0)
+	velocity = _stun_direction * stun_knockback_speed * progress
+	move_and_slide()
+
+	if _stun_timer <= 0.0:
+		_stun_direction = Vector2.ZERO
+		if _get_input_direction() != Vector2.ZERO:
+			state = State.MOVE
+		else:
+			state = State.IDLE
 
 
 func _try_attack() -> bool:
@@ -632,6 +671,10 @@ func _try_attack() -> bool:
 	_weapon_hidden_this_swing = false
 	attack_anim_name = anim_name
 	_attack_timer = _anim_player.get_animation(anim_name).length
+	# Force-play the animation immediately so it always restarts from frame 0,
+	# even if the AnimationPlayer is still playing the same animation from a
+	# previous attack (race between _physics_process and _process).
+	_anim_player.play(anim_name)
 	_show_weapon(prefix)
 	_play_attack_sfx(prefix)
 	return true
@@ -751,6 +794,7 @@ func _advance_sword_combo() -> void:
 	_weapon_hidden_this_swing = false
 	attack_anim_name = anim_name
 	_attack_timer = _anim_player.get_animation(anim_name).length
+	_anim_player.play(anim_name)
 	_show_weapon("sword_combo")
 	if _audio:
 		_audio.play_sword_swing(_sword_combo_step)
@@ -808,9 +852,6 @@ func _show_weapon(anim_prefix: String) -> void:
 		return
 	_weapons_node.visible = true
 
-	if _character_node:
-		_character_node.z_index = 1 if facing == "up" else 0
-
 	var weapon_key = WEAPON_NODE_MAP.get(anim_prefix, "")
 	match weapon_key:
 		"sword":
@@ -831,8 +872,6 @@ func _show_weapon(anim_prefix: String) -> void:
 
 func _hide_all_weapons() -> void:
 	_disable_all_hitboxes()
-	if _character_node:
-		_character_node.z_index = 0
 	if _weapons_node:
 		_weapons_node.visible = false
 	if _sword_node:
@@ -849,12 +888,12 @@ func _enable_sword_hitbox(dir: String) -> void:
 	_disable_all_hitboxes()
 	var hitbox = _sword_hitboxes.get(dir)
 	if hitbox:
-		hitbox.monitoring = true
-		hitbox.monitorable = true
+		hitbox.set_deferred("monitoring", true)
+		hitbox.set_deferred("monitorable", true)
 		var shape_suffix = "2" if _sword_combo_step >= 3 else "1"
 		for child in hitbox.get_children():
 			if child is CollisionShape2D:
-				child.disabled = not child.name.ends_with(shape_suffix)
+				child.set_deferred("disabled", not child.name.ends_with(shape_suffix))
 
 
 func _enable_tool_hitbox(anim_prefix: String, dir: String) -> void:
@@ -862,31 +901,31 @@ func _enable_tool_hitbox(anim_prefix: String, dir: String) -> void:
 	var hitbox = _tool_hitboxes.get(anim_prefix)
 	if hitbox == null:
 		return
-	hitbox.monitoring = true
-	hitbox.monitorable = true
+	hitbox.set_deferred("monitoring", true)
+	hitbox.set_deferred("monitorable", true)
 	for child in hitbox.get_children():
 		if child is CollisionShape2D:
 			var shape_dir = child.name.replace("Hitbox", "").to_lower()
-			child.disabled = shape_dir != dir
+			child.set_deferred("disabled", shape_dir != dir)
 
 
 func _disable_all_hitboxes() -> void:
 	for hitbox in _sword_hitboxes.values():
 		if hitbox:
-			hitbox.monitoring = false
-			hitbox.monitorable = false
+			hitbox.set_deferred("monitoring", false)
+			hitbox.set_deferred("monitorable", false)
 			_set_collision_shapes(hitbox, true)
 	for hitbox in _tool_hitboxes.values():
 		if hitbox:
-			hitbox.monitoring = false
-			hitbox.monitorable = false
+			hitbox.set_deferred("monitoring", false)
+			hitbox.set_deferred("monitorable", false)
 			_set_collision_shapes(hitbox, true)
 
 
 func _set_collision_shapes(parent: Node, disabled: bool) -> void:
 	for child in parent.get_children():
 		if child is CollisionShape2D:
-			child.disabled = disabled
+			child.set_deferred("disabled", disabled)
 
 
 func _facing_to_vector() -> Vector2:
@@ -977,4 +1016,4 @@ func _set_hit_collision(enabled: bool) -> void:
 		collision_layer = 0
 		collision_mask = 0
 	if _player_hitbox:
-		_player_hitbox.disabled = not enabled
+		_player_hitbox.set_deferred("disabled", not enabled)

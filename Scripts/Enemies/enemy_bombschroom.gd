@@ -29,7 +29,7 @@ func _ready() -> void:
 	_original_modulate = _sprite.modulate
 	# Bombschroom doesn't use a weapon area — it explodes
 	if _weapon:
-		_weapon.monitoring = false
+		_weapon.set_deferred("monitoring", false)
 
 
 func _physics_process(delta: float) -> void:
@@ -89,13 +89,14 @@ func _explode() -> void:
 
 
 func _deal_explosion_damage() -> void:
-	# Find the player and damage if in radius
-	var space := get_world_2d().direct_space_state
-	# Simple distance check to player
-	if _player and is_instance_valid(_player):
-		if global_position.distance_to(_player.global_position) <= explosion_radius:
-			if _player.has_method("take_damage"):
-				_player.take_damage(explosion_damage)
+	# Only damage the player — never other enemies or self
+	if not _player or not is_instance_valid(_player):
+		return
+	if _player.is_in_group("enemies"):
+		return
+	if global_position.distance_to(_player.global_position) <= explosion_radius:
+		if _player.has_method("take_damage"):
+			_player.take_damage(explosion_damage)
 
 
 func _spawn_explosion_particles() -> void:
@@ -195,9 +196,9 @@ func _spawn_gas_cloud() -> void:
 		p.process_material = mat
 		cloud.add_child(p)
 
-	# Set up collision layers
+	# Enforce collision layers — only detect the player, never enemies
 	cloud.collision_layer = 0
-	cloud.collision_mask = 1  # Player layer
+	cloud.collision_mask = 1  # Player layer only
 	cloud.set_deferred("monitoring", true)
 
 	get_parent().add_child(cloud)
@@ -211,6 +212,9 @@ func _spawn_gas_cloud() -> void:
 
 	tick_timer.timeout.connect(func():
 		for body in cloud.get_overlapping_bodies():
+			# Skip enemies — gas cloud must never deal friendly fire
+			if body.is_in_group("enemies"):
+				continue
 			if (body.is_in_group("player") or body.name == "Player") and body.has_method("take_damage"):
 				body.take_damage(gas_cloud_tick_damage)
 	)

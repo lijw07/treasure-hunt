@@ -12,15 +12,16 @@ var _attack_lunge_dir: Vector2 = Vector2.ZERO
 
 
 func _on_attack_start() -> void:
+	# Position weapon hitbox BEFORE enabling monitoring (super enables it)
+	# to prevent a frame where the weapon sits at (0,0) overlapping our own hurtbox
+	_position_weapon()
+
 	super._on_attack_start()
 
 	# Short lunge toward player
 	if lunge_on_attack and _player and is_instance_valid(_player):
 		_attack_lunge_dir = (_player.global_position - global_position).normalized()
 		_knockback_velocity = _attack_lunge_dir * lunge_distance
-
-	# Position weapon hitbox in facing direction
-	_position_weapon()
 
 
 func _end_attack() -> void:
@@ -31,7 +32,10 @@ func _end_attack() -> void:
 func _position_weapon() -> void:
 	if _weapon == null:
 		return
-	match _facing:
+	# Use _visual_facing (true direction) not _facing (animation key).
+	# When facing left via sprite flip, _facing is "right" but the weapon
+	# must be placed to the LEFT of the enemy.
+	match _visual_facing:
 		"down":
 			_weapon.position = Vector2(0, weapon_offset)
 		"up":

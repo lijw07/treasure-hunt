@@ -15,13 +15,19 @@ extends CharacterBody2D
 ##   - FootstepPlayer (movement SFX)
 ##   - HurtPlayer     (hurt/attack SFX)
 
+## Collision layer constants — enforced in code so scene misconfig can't cause
+## self-damage or friendly fire.
+const LAYER_PLAYER       := 1    ## Layer 1
+const LAYER_ENEMY        := 2    ## Layer 2
+const LAYER_PLAYER_MELEE := 16   ## Layer 5 — player sword / tool hitboxes
+const LAYER_ENEMY_WEAPON := 32   ## Layer 6 — enemy weapon areas
+const LAYER_PLAYER_ARROW := 64   ## Layer 7 — player arrows
+
 @export_group("Stats")
-@export var max_health: int = 3          ## Half-hearts
-@export var contact_damage: int = 1      ## Damage dealt when player overlaps
+@export var max_health: int = 6          ## Hit points
 @export var attack_damage: int = 1       ## Damage dealt on attack hit
 @export var knockback_force: float = 120.0
 @export var invincibility_duration: float = 0.4
-@export var contact_damage_interval: float = 0.6  ## Seconds between contact damage ticks
 
 @export_group("Movement")
 @export var move_speed: float = 30.0
@@ -40,6 +46,7 @@ extends CharacterBody2D
 @export_group("Attack")
 @export var attack_cooldown: float = 1.2
 @export var attack_duration: float = 0.5
+@export var attack_windup: float = 0.4   ## Delay before the strike lands (telegraph window)
 
 @export_group("Audio")
 @export var ambient_sound: AudioStream
@@ -68,7 +75,8 @@ var _timer: float = 0.0
 var _attack_timer: float = 0.0
 var _walk_direction: Vector2 = Vector2.ZERO
 var _spawn_position: Vector2 = Vector2.ZERO
-var _facing: String = "down"
+var _facing: String = "down"         ## Animation key (may be "right" when visually left via flip)
+var _visual_facing: String = "down"  ## True visual direction (accounts for sprite flip)
 var _player: Node2D = null
 var _knockback_velocity: Vector2 = Vector2.ZERO
 var _invincible_timer: float = 0.0
@@ -76,8 +84,20 @@ var _audio_timer: float = 0.0
 var _footstep_timer: float = 0.0
 var _is_dead: bool = false
 var _current_hp: int = 0
-var _contact_cooldown: float = 0.0
-var _contact_area: Area2D
+var _windup_remaining: float = 0.0   ## Time left before the strike activates
+var _attack_struck: bool = false      ## Whether _on_attack_start() has fired this attack
+var _damage_aggro: bool = false       ## True when aggro'd by taking damage from outside detection range
+
+# ── Health Bar UI ──
+var _health_bar_bg: ColorRect
+var _health_bar_fill: ColorRect
+var _health_bar_container: Node2D
+var _health_bar_visible_timer: float = 0.0
+const HEALTH_BAR_WIDTH: float = 20.0
+const HEALTH_BAR_HEIGHT: float = 3.0
+const HEALTH_BAR_OFFSET_Y: float = -14.0   ## Pixels above enemy origin
+const HEALTH_BAR_SHOW_DURATION: float = 3.0 ## Seconds to stay visible after damage
+const HEALTH_BAR_FADE_SPEED: float = 3.0    ## Alpha units per second for fade-out
 
 # SFX banks loaded at runtime
 var _footstep_sounds: Array[AudioStream] = []
@@ -106,21 +126,31 @@ func _ready() -> void:
 	_detection_area.body_entered.connect(_on_player_entered)
 	_detection_area.body_exited.connect(_on_player_exited)
 
-	# Set up hurtbox
+	# Set up hurtbox — enforce layers so it only detects player weapons/arrows
 	_hurtbox.add_to_group("enemy_hurtbox")
+	_hurtbox.collision_layer = LAYER_ENEMY
+	_hurtbox.collision_mask  = LAYER_PLAYER_MELEE | LAYER_PLAYER_ARROW
 	_hurtbox.area_entered.connect(_on_hurtbox_area_entered)
 
-	# Set up weapon area
+	# Set up weapon area — enforce layers so it only interacts with the player
 	if _weapon:
 		_weapon.add_to_group("enemy_weapon")
+		_weapon.collision_layer = LAYER_ENEMY_WEAPON
+		_weapon.collision_mask  = LAYER_PLAYER
 		_weapon.set("damage", attack_damage)
-		_weapon.monitoring = false
+		_weapon.set_deferred("monitoring", false)
+		_weapon.set_deferred("monitorable", false)
+		_set_weapon_shapes(true)  # Start with shapes disabled
 
-	# Create contact damage area (always-on Area2D that hurts player on overlap)
-	_setup_contact_area()
+	# Enforce detection area layers — only detect the player body
+	_detection_area.collision_layer = 0
+	_detection_area.collision_mask  = LAYER_PLAYER
 
 	# Add to enemy group
 	add_to_group("enemies")
+
+	# Create health bar UI (hidden until first hit)
+	_setup_health_bar()
 
 	# Load SFX banks
 	_load_sfx()
@@ -146,13 +176,6 @@ func _physics_process(delta: float) -> void:
 	if _attack_timer > 0.0:
 		_attack_timer -= delta
 
-	# Contact damage cooldown
-	if _contact_cooldown > 0.0:
-		_contact_cooldown -= delta
-
-	# Contact damage check
-	_check_contact_damage()
-
 	# State machine
 	match _state:
 		State.IDLE:
@@ -172,44 +195,71 @@ func _physics_process(delta: float) -> void:
 	velocity = velocity + _knockback_velocity
 	move_and_slide()
 
+	# Health bar fade
+	_process_health_bar(delta)
+
 	# Audio
 	_process_audio(delta)
 
 
-# ── Contact Damage ────────────────────────────────────────────────────────
+# ── Health Bar UI ─────────────────────────────────────────────────────────
 
-func _setup_contact_area() -> void:
-	_contact_area = Area2D.new()
-	_contact_area.name = "ContactArea"
-	_contact_area.collision_layer = 0
-	_contact_area.collision_mask = 1  # Detect player body
-	_contact_area.monitoring = true
+func _setup_health_bar() -> void:
+	_health_bar_container = Node2D.new()
+	_health_bar_container.z_index = 10
+	_health_bar_container.position = Vector2(0, HEALTH_BAR_OFFSET_Y)
+	# Don't inherit parent transforms like flip — bar should stay level
+	_health_bar_container.top_level = false
 
-	var shape := CollisionShape2D.new()
-	var circle := CircleShape2D.new()
-	circle.radius = 8.0  # Tight overlap radius
-	shape.shape = circle
-	_contact_area.add_child(shape)
-	add_child(_contact_area)
+	# Background (dark)
+	_health_bar_bg = ColorRect.new()
+	_health_bar_bg.color = Color(0.1, 0.1, 0.1, 0.8)
+	_health_bar_bg.size = Vector2(HEALTH_BAR_WIDTH + 2, HEALTH_BAR_HEIGHT + 2)
+	_health_bar_bg.position = Vector2(-(HEALTH_BAR_WIDTH + 2) / 2.0, 0)
+	_health_bar_container.add_child(_health_bar_bg)
+
+	# Fill (red → yellow → green based on HP ratio)
+	_health_bar_fill = ColorRect.new()
+	_health_bar_fill.size = Vector2(HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT)
+	_health_bar_fill.position = Vector2(-HEALTH_BAR_WIDTH / 2.0, 1)
+	_health_bar_container.add_child(_health_bar_fill)
+
+	add_child(_health_bar_container)
+
+	# Start hidden
+	_health_bar_container.modulate = Color(1, 1, 1, 0)
 
 
-func _check_contact_damage() -> void:
-	if _contact_cooldown > 0.0 or _is_dead:
+func _show_health_bar() -> void:
+	if _health_bar_container == null:
 		return
-	for body in _contact_area.get_overlapping_bodies():
-		if (body.is_in_group("player") or body.name == "Player"):
-			if body.get("invincible") and body.invincible:
-				return
-			if body.has_method("take_damage"):
-				body.take_damage(contact_damage)
-				_contact_cooldown = contact_damage_interval
-				# Knock player away
-				if body.has_method("apply_knockback"):
-					var kb_dir := (body.global_position - global_position).normalized()
-					body.apply_knockback(kb_dir * knockback_force * 1.5)
-				_spawn_hit_particles(body.global_position)
-				_play_sfx(_hurt_player, _hurt_sounds, -2.0)
-				return
+	var ratio := clampf(float(_current_hp) / float(max_health), 0.0, 1.0)
+
+	# Update fill width
+	_health_bar_fill.size.x = HEALTH_BAR_WIDTH * ratio
+
+	# Color: green > 0.5, yellow at 0.5, red < 0.25
+	if ratio > 0.5:
+		_health_bar_fill.color = Color(0.2, 0.85, 0.2, 1.0)  # Green
+	elif ratio > 0.25:
+		_health_bar_fill.color = Color(0.95, 0.85, 0.15, 1.0) # Yellow
+	else:
+		_health_bar_fill.color = Color(0.9, 0.15, 0.15, 1.0)  # Red
+
+	# Show and reset timer
+	_health_bar_container.modulate = Color(1, 1, 1, 1)
+	_health_bar_visible_timer = HEALTH_BAR_SHOW_DURATION
+
+
+func _process_health_bar(delta: float) -> void:
+	if _health_bar_container == null:
+		return
+	if _health_bar_visible_timer > 0.0:
+		_health_bar_visible_timer -= delta
+	elif _health_bar_container.modulate.a > 0.0:
+		# Fade out
+		var a := maxf(_health_bar_container.modulate.a - HEALTH_BAR_FADE_SPEED * delta, 0.0)
+		_health_bar_container.modulate = Color(1, 1, 1, a)
 
 
 # ── State processors ──────────────────────────────────────────────────────
@@ -248,21 +298,40 @@ func _process_wander(delta: float) -> void:
 		_enter_idle()
 
 
-func _process_chase(delta: float) -> void:
+func _process_chase(_delta: float) -> void:
 	if not _player or not is_instance_valid(_player):
 		_player = null
+		_damage_aggro = false
 		_enter_idle()
 		return
 
 	var dist := global_position.distance_to(_player.global_position)
 
-	if dist > lose_interest_radius:
+	# When aggro'd by taking damage, chase much further before giving up.
+	# Once close enough for normal detection, clear the aggro flag.
+	if _damage_aggro:
+		if dist <= detection_radius:
+			_damage_aggro = false  # Normal detection takes over
+		elif dist > lose_interest_radius * 3.0:
+			_damage_aggro = false
+			_player = null
+			_enter_idle()
+			return
+	elif dist > lose_interest_radius:
 		_player = null
 		_enter_idle()
 		return
 
 	if dist <= attack_range and _attack_timer <= 0.0:
 		_enter_attack()
+		return
+
+	# Within attack range but on cooldown — hold position instead of pushing
+	if dist <= attack_range:
+		velocity = Vector2.ZERO
+		var face_dir := (_player.global_position - global_position).normalized()
+		_update_facing(face_dir)
+		_play_directional_anim("idle")
 		return
 
 	var dir := ((_player.global_position - global_position).normalized())
@@ -274,6 +343,14 @@ func _process_chase(delta: float) -> void:
 func _process_attack(delta: float) -> void:
 	velocity = Vector2.ZERO
 	_timer -= delta
+
+	# Tick windup — once it expires, fire the actual strike
+	if not _attack_struck:
+		_windup_remaining -= delta
+		if _windup_remaining <= 0.0:
+			_attack_struck = true
+			_on_attack_start()
+
 	if _timer <= 0.0:
 		_end_attack()
 		_attack_timer = attack_cooldown
@@ -287,7 +364,8 @@ func _process_hurt(delta: float) -> void:
 	velocity = Vector2.ZERO
 	_timer -= delta
 	if _timer <= 0.0:
-		if _player and _can_see_player():
+		# Always chase after being hit if we know where the player is
+		if _player and is_instance_valid(_player):
 			_enter_chase()
 		else:
 			_enter_idle()
@@ -323,12 +401,14 @@ func _enter_chase() -> void:
 
 func _enter_attack() -> void:
 	_state = State.ATTACK
-	_timer = attack_duration
+	_attack_struck = false
+	_windup_remaining = attack_windup
+	# Total time in ATTACK state = windup + strike duration
+	_timer = attack_windup + attack_duration
 	if _player:
 		var dir := (_player.global_position - global_position).normalized()
 		_update_facing(dir)
 	_play_directional_anim("attack")
-	_on_attack_start()
 
 
 func _enter_hurt() -> void:
@@ -342,8 +422,12 @@ func _enter_dying() -> void:
 	_is_dead = true
 	velocity = Vector2.ZERO
 	if _weapon:
-		_weapon.monitoring = false
-	_contact_area.monitoring = false
+		_weapon.set_deferred("monitoring", false)
+		_weapon.set_deferred("monitorable", false)
+		_set_weapon_shapes(true)
+	# Hide health bar on death
+	if _health_bar_container:
+		_health_bar_container.modulate = Color(1, 1, 1, 0)
 	_play_death_sound()
 	_spawn_death_particles()
 	_play_anim("death")
@@ -362,12 +446,24 @@ func _on_attack_start() -> void:
 	_spawn_attack_particles()
 	if _weapon:
 		_weapon.set("damage", attack_damage)
-		_weapon.monitoring = true
+		_weapon.set_deferred("monitoring", true)
+		_weapon.set_deferred("monitorable", true)
+		_set_weapon_shapes(false)  # Enable collision shapes
 
 
 func _end_attack() -> void:
 	if _weapon:
-		_weapon.monitoring = false
+		_weapon.set_deferred("monitoring", false)
+		_weapon.set_deferred("monitorable", false)
+		_set_weapon_shapes(true)  # Disable collision shapes so nothing can detect it
+
+
+func _set_weapon_shapes(disabled: bool) -> void:
+	if _weapon == null:
+		return
+	for child in _weapon.get_children():
+		if child is CollisionShape2D:
+			child.set_deferred("disabled", disabled)
 
 
 func _on_death_complete() -> void:
@@ -384,9 +480,25 @@ func take_damage(amount: int = 1) -> void:
 
 	_current_hp -= amount
 	_invincible_timer = invincibility_duration
+
+	# Clean up weapon hitbox if interrupted mid-attack
+	if _state == State.ATTACK:
+		_attack_struck = false
+		_windup_remaining = 0.0
+		_end_attack()
+
+	# ── Aggro on damage: find the player even if outside detection range ──
+	if _player == null or not is_instance_valid(_player):
+		_player = _find_player()
+	if _player and is_instance_valid(_player):
+		var dist := global_position.distance_to(_player.global_position)
+		if dist > detection_radius:
+			_damage_aggro = true  # Player hit us from far away — chase them down
+
 	_flash_hurt()
 	_spawn_hit_particles(global_position)
 	_play_hurt_sound()
+	_show_health_bar()
 
 	if _current_hp <= 0:
 		_enter_dying()
@@ -411,7 +523,7 @@ func _on_player_entered(body: Node2D) -> void:
 		_player = body
 
 
-func _on_player_exited(body: Node2D) -> void:
+func _on_player_exited(_body: Node2D) -> void:
 	pass
 
 
@@ -421,21 +533,37 @@ func _can_see_player() -> bool:
 	return global_position.distance_to(_player.global_position) <= detection_radius
 
 
+func _find_player() -> Node2D:
+	## Search the scene tree for the player (used for aggro when hit from outside detection range).
+	var players := get_tree().get_nodes_in_group("player")
+	if players.size() > 0 and is_instance_valid(players[0]):
+		return players[0] as Node2D
+	return null
+
+
 func _on_hurtbox_area_entered(area: Area2D) -> void:
-	# Reject any damage from enemy-owned sources (prevents friendly fire / self-damage)
-	if area.is_in_group("enemy_weapon"):
-		return
-	var source_owner := area.get_parent()
-	if source_owner is EnemyBase:
+	# ── Reject ALL enemy-owned sources (prevents friendly fire & self-damage) ──
+	if area.is_in_group("enemy_weapon") or area.is_in_group("enemy_hurtbox"):
 		return
 
-	if area.is_in_group("player_weapon") or area.name.begins_with("Hitbox"):
-		var dmg: int = 1
-		if area.get("damage") != null:
-			dmg = area.damage
-		elif source_owner and source_owner.get("damage") != null:
-			dmg = source_owner.damage
-		take_damage(dmg)
+	# Walk up the tree — if ANY ancestor is an EnemyBase, this is enemy-owned
+	var node := area.get_parent()
+	while node != null:
+		if node is EnemyBase:
+			return
+		node = node.get_parent()
+
+	# ── Only accept damage from verified player sources ──
+	if not area.is_in_group("player_weapon"):
+		return
+
+	var source_owner := area.get_parent()
+	var dmg: int = 1
+	if area.get("damage") != null:
+		dmg = area.damage
+	elif source_owner and source_owner.get("damage") != null:
+		dmg = source_owner.damage
+	take_damage(dmg)
 
 
 # ── Animation helpers ─────────────────────────────────────────────────────
@@ -464,13 +592,17 @@ func _update_facing(dir: Vector2) -> void:
 	if dir == Vector2.ZERO:
 		return
 	if absf(dir.x) > absf(dir.y):
-		_facing = "right" if dir.x > 0 else "left"
+		_visual_facing = "right" if dir.x > 0 else "left"
 	else:
-		_facing = "down" if dir.y > 0 else "up"
+		_visual_facing = "down" if dir.y > 0 else "up"
+
+	# _facing is the key used for animation lookup — may differ from visual
+	# direction when left animations are missing (sprite flip is used instead).
+	_facing = _visual_facing
 	if _facing == "left":
 		if not _anim_player.has_animation("idle_left"):
 			_sprite.flip_h = true
-			_facing = "right"
+			_facing = "right"   # animation key only — _visual_facing stays "left"
 		else:
 			_sprite.flip_h = false
 	elif _facing == "right":
@@ -541,8 +673,8 @@ func _spawn_attack_particles() -> void:
 	p.lifetime = 0.35
 	p.z_index = 2
 
-	var angle_deg := _dir_angle(_facing)
-	var offset := _dir_offset(_facing, 12.0)
+	var angle_deg := _dir_angle(_visual_facing)
+	var offset := _dir_offset(_visual_facing, 12.0)
 
 	var mat := ParticleProcessMaterial.new()
 	var rad := deg_to_rad(angle_deg)

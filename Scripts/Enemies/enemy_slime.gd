@@ -26,6 +26,17 @@ extends EnemyBase
 @export var slime_color: Color = Color(0.3, 0.75, 0.25, 0.85)
 @export var splat_particle_count: int = 10
 
+@export_group("Death Gas")
+## Spawn an expanding green gas cloud that damages the player when the slime dies.
+@export var death_gas_enabled: bool = true
+@export var death_gas_damage: int = 1
+@export var death_gas_radius: float = 24.0
+## How long the damage area is active.  The visual cloud lingers slightly longer.
+@export var death_gas_damage_duration: float = 0.45
+@export var death_gas_visual_duration: float = 0.9
+@export var death_gas_particle_count: int = 40
+@export var death_gas_color: Color = Color(0.45, 0.95, 0.35, 0.7)
+
 var _hop_phase: float = 0.0       ## Tracks position in the hop cycle (0..1 per hop)
 var _hop_was_airborne: bool = false ## Tracks if we were airborne last frame (for landing FX)
 var _hop_direction: Vector2 = Vector2.ZERO  ## Direction locked at start of each hop
@@ -306,6 +317,11 @@ func _update_facing(dir: Vector2) -> void:
 # ── Override: death with optional split ───────────────────────────────────
 
 func _on_death_complete() -> void:
+	# Death gas first — fires before split so the cloud is centred on the
+	# original slime, not displaced by the spawn positions of the children.
+	if death_gas_enabled:
+		_spawn_death_gas_explosion()
+
 	if split_on_death and split_scene:
 		for i in range(split_count):
 			var child := split_scene.instantiate() as Node2D
@@ -350,3 +366,97 @@ func _spawn_splat_fx() -> void:
 	p.restart()
 	p.emitting = true
 	get_tree().create_timer(0.6).timeout.connect(p.queue_free)
+
+
+# ── Death gas explosion ───────────────────────────────────────────────────
+## Spawns an expanding green gas cloud that:
+##   - Damages the player on contact via an Area2D in "enemy_weapon" group
+##     (same channel the player_hurtbox already listens for).
+##   - Renders a billowing GPUParticles2D cloud that drifts upward and fades.
+## The container is parented to the slime's parent so it survives the slime's
+## queue_free() that fires immediately after _on_death_complete().
+func _spawn_death_gas_explosion() -> void:
+	var parent := get_parent()
+	if parent == null:
+		return
+
+	var container := Node2D.new()
+	container.z_index = 3
+	parent.add_child(container)
+	container.global_position = global_position
+
+	# ── Damage hitbox ────────────────────────────────────────────────────
+	var dmg_area := Area2D.new()
+	dmg_area.add_to_group("enemy_weapon")
+	dmg_area.collision_layer = LAYER_ENEMY_WEAPON   # 32 — what player_hurtbox masks
+	dmg_area.collision_mask  = LAYER_PLAYER         # 1  — only damages the player
+	dmg_area.set("damage", death_gas_damage)
+	dmg_area.monitoring = true
+	dmg_area.monitorable = true
+
+	var shape_node := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = death_gas_radius
+	shape_node.shape = circle
+	dmg_area.add_child(shape_node)
+	container.add_child(dmg_area)
+
+	# ── Gas particles ────────────────────────────────────────────────────
+	var p := GPUParticles2D.new()
+	p.emitting = false
+	p.one_shot = true
+	p.explosiveness = 0.85
+	p.amount = clampi(death_gas_particle_count, 4, 128)
+	p.lifetime = death_gas_visual_duration
+
+	var mat := ParticleProcessMaterial.new()
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	mat.emission_sphere_radius = 4.0
+	mat.direction = Vector3(0, -0.4, 0)
+	mat.spread = 180.0
+	mat.initial_velocity_min = 35.0
+	mat.initial_velocity_max = 95.0
+	mat.gravity = Vector3(0, -10, 0)   # Gas drifts upward
+	mat.damping_min = 10.0
+	mat.damping_max = 22.0
+	mat.scale_min = 2.0
+	mat.scale_max = 5.0
+	mat.color = death_gas_color
+
+	var alpha_curve := CurveTexture.new()
+	var ac := Curve.new()
+	ac.add_point(Vector2(0.0, 0.0))
+	ac.add_point(Vector2(0.12, 0.95))
+	ac.add_point(Vector2(0.6, 0.7))
+	ac.add_point(Vector2(1.0, 0.0))
+	alpha_curve.curve = ac
+	mat.alpha_curve = alpha_curve
+
+	var scale_curve := CurveTexture.new()
+	var sc := Curve.new()
+	sc.add_point(Vector2(0.0, 0.4))
+	sc.add_point(Vector2(0.5, 1.2))
+	sc.add_point(Vector2(1.0, 1.7))
+	scale_curve.curve = sc
+	mat.scale_curve = scale_curve
+
+	p.process_material = mat
+	container.add_child(p)
+	p.restart()
+	p.emitting = true
+
+	# Stop dealing damage after the active window so residual smoke
+	# can't keep ticking the player's i-frames as it lingers.
+	var disable_timer := get_tree().create_timer(death_gas_damage_duration)
+	disable_timer.timeout.connect(func() -> void:
+		if is_instance_valid(dmg_area):
+			dmg_area.set_deferred("monitoring", false)
+			dmg_area.set_deferred("monitorable", false)
+	)
+
+	# Tear down the whole effect once the visual cloud has fully faded.
+	var cleanup_timer := get_tree().create_timer(death_gas_visual_duration + 0.2)
+	cleanup_timer.timeout.connect(func() -> void:
+		if is_instance_valid(container):
+			container.queue_free()
+	)

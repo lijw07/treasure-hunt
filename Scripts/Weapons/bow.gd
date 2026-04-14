@@ -42,7 +42,9 @@ func _sync_sprite() -> void:
 	if player == null:
 		return
 
-	var dir: String = player.facing if "facing" in player else "down"
+	# Use mouse direction to pick the closest cardinal for sprite frames
+	var mouse_dir := _get_mouse_direction(player)
+	var dir := _direction_to_string(mouse_dir)
 	var base_frame: int = FRAME_OFFSET.get(dir, 0)
 
 	_sprite.flip_h = (dir == "left")
@@ -69,6 +71,18 @@ func _sync_sprite() -> void:
 		_sprite.frame = base_frame
 
 
+func _get_mouse_direction(player: Node) -> Vector2:
+	var mouse_pos: Vector2 = player.get_global_mouse_position()
+	return (mouse_pos - player.global_position).normalized()
+
+
+func _direction_to_string(dir: Vector2) -> String:
+	if abs(dir.x) > abs(dir.y):
+		return "right" if dir.x > 0 else "left"
+	else:
+		return "down" if dir.y > 0 else "up"
+
+
 func shoot() -> void:
 	if arrow_scene == null:
 		return
@@ -78,13 +92,14 @@ func shoot() -> void:
 	cooldown_timer = cooldown
 
 	var player = _get_player()
-	var dir: String = "down"
-	if player and "facing" in player:
-		dir = player.facing
+	var aim_dir := Vector2.DOWN
+	if player:
+		aim_dir = _get_mouse_direction(player)
 
 	var arrow = arrow_scene.instantiate()
-	arrow.global_position = global_position
-	arrow.setup(dir)
+	# Offset spawn 10px in the aim direction so the arrow clears the player body
+	arrow.global_position = global_position + aim_dir * 10.0
+	arrow.setup(aim_dir)
 	get_tree().current_scene.add_child(arrow)
 
 

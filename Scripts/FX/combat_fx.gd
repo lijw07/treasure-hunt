@@ -20,6 +20,10 @@ extends Node2D
 @export var grass_jump_amount: int = 14
 @export var grass_roll_amount: int = 8
 
+@export_group("Mount")
+@export var summon_smoke_color: Color = Color(0.85, 0.85, 0.85, 0.9)
+@export var summon_smoke_amount: int = 24
+
 @export_group("Flash")
 @export var flash_color: Color = Color(1.2, 1.2, 1.2, 1.0)
 @export var flash_duration: float = 0.1
@@ -31,6 +35,7 @@ var _slash_particles: GPUParticles2D
 var _impact_particles: GPUParticles2D
 var _grass_particles: GPUParticles2D
 var _movement_dust: GPUParticles2D
+var _summon_particles: GPUParticles2D
 
 
 func _ready() -> void:
@@ -42,6 +47,7 @@ func _ready() -> void:
 	_impact_particles = _create_burst_emitter("ImpactFX", axe_spark_color, 16)
 	_grass_particles = _create_burst_emitter("GrassFX", grass_color, grass_walk_amount)
 	_movement_dust = _create_burst_emitter("DustFX", dust_color, 6)
+	_summon_particles = _create_burst_emitter("SummonFX", summon_smoke_color, summon_smoke_amount)
 
 
 func play_sword_fx(dir: String, combo_step: int) -> void:
@@ -80,6 +86,30 @@ func play_fish_cast_fx(dir: String) -> void:
 	_burst(_impact_particles, global_position + offset, water_splash_color,
 		12, -90.0, 70.0, 45.0, dir)
 	_flash_weapon()
+
+
+func play_summon_smoke() -> void:
+	if _summon_particles == null:
+		return
+	_summon_particles.position = Vector2.ZERO
+	_summon_particles.amount = clampi(summon_smoke_amount, 1, 64)
+	_summon_particles.lifetime = 0.6
+	_summon_particles.z_index = 1
+
+	var mat: ParticleProcessMaterial = _summon_particles.process_material as ParticleProcessMaterial
+	if mat == null:
+		return
+	mat.direction = Vector3(0, -1, 0)
+	mat.spread = 180.0
+	mat.initial_velocity_min = 25.0
+	mat.initial_velocity_max = 55.0
+	mat.gravity = Vector3(0, -20, 0)
+	mat.color = summon_smoke_color
+	mat.scale_min = 2.0
+	mat.scale_max = 4.0
+
+	_summon_particles.restart()
+	_summon_particles.emitting = true
 
 
 func play_walk_grass() -> void:

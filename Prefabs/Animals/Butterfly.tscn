@@ -2,6 +2,8 @@
 
 [ext_resource type="Texture2D" uid="uid://ebrr2cdwxrfg" path="res://Assets/Cute_Fantasy/Animals/Butterfly/Butterfly.png" id="1_tex"]
 [ext_resource type="Script" uid="uid://cwewa2mnvv3pw" path="res://Scripts/Animals/flying_animal.gd" id="2_script"]
+[ext_resource type="AudioStream" path="res://Assets/Audio/SFX/Animals/butterfly_flutter.ogg" id="3_ambient"]
+[ext_resource type="AudioStream" path="res://Assets/Audio/SFX/Animals/butterfly_flutter.ogg" id="4_flying"]
 
 [sub_resource type="Animation" id="Animation_fly_blue"]
 length = 0.2
@@ -153,6 +155,8 @@ script = ExtResource("2_script")
 move_speed = 10.0
 hover_amplitude = 4.0
 
+ambient_sound = ExtResource("3_ambient")
+flying_sound = ExtResource("4_flying")
 [node name="Sprite" type="Sprite2D" parent="." unique_id=1727375601]
 texture_filter = 1
 texture = ExtResource("1_tex")
@@ -166,4 +170,9 @@ libraries/ = SubResource("AnimationLibrary_da6b5")
 shape = SubResource("CircleShape2D_63ace")
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=1782329223]
+volume_db = -10.0
 max_distance = 100.0
+
+[node name="FlyingSoundPlayer" type="AudioStreamPlayer2D" parent="."]
+max_distance = 80.0
+volume_db = -16.0

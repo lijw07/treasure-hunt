@@ -7,7 +7,7 @@ size = Vector2(16, 24)
 
 [node name="OakTree" type="StaticBody2D" unique_id=1580641783]
 y_sort_enabled = true
-collision_layer = 2
+collision_layer = 8
 collision_mask = 0
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=558649203]

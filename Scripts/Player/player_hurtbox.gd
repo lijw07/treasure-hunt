@@ -20,3 +20,5 @@ func _on_area_entered(area: Area2D) -> void:
 
 	if player.has_method("take_damage"):
 		player.take_damage(dmg)
+	if player.has_method("apply_stun"):
+		player.apply_stun(area.global_position)

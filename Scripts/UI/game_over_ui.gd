@@ -5,24 +5,54 @@ extends CanvasLayer
 ##   • Respawn at Checkpoint — resets health and moves the player to the
 ##     last checkpoint (or spawn point).
 ##   • Quit — returns to the main menu scene.
+##
+## Styled to match the pause menu / start menu Cute Fantasy pixel theme.
 
 signal respawn_requested
 signal quit_requested
 
+# ── Palette (matches pause_menu / start_menu) ──────────────────────
+const P_FRAME_OUTER   := Color("#c89248")
+const P_FRAME_INNER   := Color("#7c4428")
+const P_FRAME_BORDER  := Color("#4c2810")
+
+const P_BTN           := Color("#48883c")
+const P_BTN_HOVER     := Color("#5ca84c")
+const P_BTN_PRESS     := Color("#346828")
+const P_BTN_BORDER    := Color("#284e1c")
+const P_FRAME_HILITE  := Color("#e8b468")
+
+const P_EXIT          := Color("#884040")
+const P_EXIT_HOVER    := Color("#a85454")
+const P_EXIT_PRESS    := Color("#6c2c2c")
+const P_EXIT_BORDER   := Color("#4c1c1c")
+
+const P_GOLD          := Color("#ffd860")
+const P_TEXT          := Color("#f8f0e0")
+const P_TEXT_DIM      := Color("#a89880")
+const P_OVERLAY       := Color(0.0, 0.0, 0.0, 0.7)
+
+# ── Sizing ──────────────────────────────────────────────────────────
+const BTN_W           := 220
+const BTN_H           := 30
+const BORDER          := 3
+const CORNER          := 1
+
 const FADE_DURATION: float = 0.6
 
+var _root: Control
 var _overlay: ColorRect
-var _panel: PanelContainer
-var _title_label: Label
-var _subtitle_label: Label
+var _outer_panel: PanelContainer
 var _respawn_btn: Button
 var _quit_btn: Button
-var _vbox: VBoxContainer
 var _visible: bool = false
+
+var font_main: Font
 
 
 func _ready() -> void:
 	layer = 100  # Always on top
+	font_main = load("res://Assets/Cute_Fantasy_UI/Fonts/VT323.ttf")
 	_build_ui()
 	_hide_immediate()
 
@@ -37,8 +67,8 @@ func show_game_over() -> void:
 	_visible = true
 	visible = true
 	_overlay.modulate = Color(1, 1, 1, 0)
-	_panel.modulate = Color(1, 1, 1, 0)
-	_panel.scale = Vector2(0.8, 0.8)
+	_outer_panel.modulate = Color(1, 1, 1, 0)
+	_outer_panel.scale = Vector2(0.8, 0.8)
 
 	# Pause the game tree so enemies/physics stop
 	get_tree().paused = true
@@ -47,8 +77,11 @@ func show_game_over() -> void:
 	var tw = create_tween()
 	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.tween_property(_overlay, "modulate:a", 1.0, FADE_DURATION)
-	tw.parallel().tween_property(_panel, "modulate:a", 1.0, FADE_DURATION * 0.8).set_delay(0.15)
-	tw.parallel().tween_property(_panel, "scale", Vector2.ONE, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK).set_delay(0.15)
+	tw.parallel().tween_property(_outer_panel, "modulate:a", 1.0, FADE_DURATION * 0.8).set_delay(0.15)
+	tw.parallel().tween_property(_outer_panel, "scale", Vector2.ONE, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK).set_delay(0.15)
+
+	# Give focus to respawn button for keyboard navigation
+	_respawn_btn.grab_focus()
 
 
 func hide_game_over() -> void:
@@ -56,7 +89,7 @@ func hide_game_over() -> void:
 	get_tree().paused = false
 	var tw = create_tween()
 	tw.tween_property(_overlay, "modulate:a", 0.0, 0.3)
-	tw.parallel().tween_property(_panel, "modulate:a", 0.0, 0.25)
+	tw.parallel().tween_property(_outer_panel, "modulate:a", 0.0, 0.25)
 	tw.tween_callback(_hide_immediate)
 
 
@@ -65,106 +98,176 @@ func hide_game_over() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _build_ui() -> void:
-	var root = Control.new()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(root)
+	_root = Control.new()
+	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_root)
 
 	# Dark overlay
 	_overlay = ColorRect.new()
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_overlay.color = Color(0.05, 0.02, 0.08, 0.75)
+	_overlay.color = P_OVERLAY
 	_overlay.mouse_filter = Control.MOUSE_FILTER_STOP  # Block input to game
-	root.add_child(_overlay)
+	_root.add_child(_overlay)
 
-	# Centre panel
-	_panel = PanelContainer.new()
-	_panel.set_anchors_preset(Control.PRESET_CENTER)
-	_panel.anchor_left = 0.5
-	_panel.anchor_right = 0.5
-	_panel.anchor_top = 0.5
-	_panel.anchor_bottom = 0.5
-	_panel.offset_left = -160
-	_panel.offset_right = 160
-	_panel.offset_top = -120
-	_panel.offset_bottom = 120
-	_panel.pivot_offset = Vector2(160, 120)
+	# Centre wrapper
+	var wrapper := CenterContainer.new()
+	wrapper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(wrapper)
 
-	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.12, 0.1, 0.15, 0.95)
-	panel_style.border_color = Color(0.65, 0.25, 0.25, 1.0)
-	panel_style.set_border_width_all(3)
-	panel_style.set_corner_radius_all(8)
-	panel_style.set_content_margin_all(24)
-	_panel.add_theme_stylebox_override("panel", panel_style)
-	root.add_child(_panel)
+	# Outer panel (gold frame)
+	_outer_panel = PanelContainer.new()
+	_outer_panel.custom_minimum_size = Vector2(300, 0)
+	var os := StyleBoxFlat.new()
+	os.bg_color = P_FRAME_OUTER
+	os.border_color = P_FRAME_BORDER
+	os.set_border_width_all(BORDER)
+	os.set_corner_radius_all(CORNER + 1)
+	os.content_margin_left = 4
+	os.content_margin_right = 4
+	os.content_margin_top = 4
+	os.content_margin_bottom = 4
+	_outer_panel.add_theme_stylebox_override("panel", os)
+	# Set pivot for scale animation
+	_outer_panel.pivot_offset = Vector2(150, 80)
+	wrapper.add_child(_outer_panel)
 
-	_vbox = VBoxContainer.new()
-	_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	_vbox.add_theme_constant_override("separation", 16)
-	_panel.add_child(_vbox)
+	# Inner panel (dark brown)
+	var inner := PanelContainer.new()
+	inner.clip_contents = true
+	var ins := StyleBoxFlat.new()
+	ins.bg_color = P_FRAME_INNER
+	ins.border_color = Color(P_FRAME_BORDER, 0.5)
+	ins.set_border_width_all(2)
+	ins.set_corner_radius_all(CORNER)
+	ins.content_margin_left = 16
+	ins.content_margin_right = 16
+	ins.content_margin_top = 12
+	ins.content_margin_bottom = 12
+	inner.add_theme_stylebox_override("panel", ins)
+	_outer_panel.add_child(inner)
 
-	# Title
-	_title_label = Label.new()
-	_title_label.text = "Game Over"
-	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title_label.add_theme_font_size_override("font_size", 32)
-	_title_label.add_theme_color_override("font_color", Color(0.9, 0.25, 0.25, 1.0))
-	_title_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
-	_title_label.add_theme_constant_override("shadow_offset_x", 2)
-	_title_label.add_theme_constant_override("shadow_offset_y", 2)
-	_vbox.add_child(_title_label)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	vbox.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	inner.add_child(vbox)
+
+	# Title — "Game Over" in gold
+	var title := Label.new()
+	title.text = "Game Over"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_override("font", font_main)
+	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", P_GOLD)
+	title.add_theme_constant_override("outline_size", 2)
+	title.add_theme_color_override("font_outline_color", P_FRAME_BORDER)
+	vbox.add_child(title)
 
 	# Subtitle
-	_subtitle_label = Label.new()
-	_subtitle_label.text = "You have fallen..."
-	_subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_subtitle_label.add_theme_font_size_override("font_size", 14)
-	_subtitle_label.add_theme_color_override("font_color", Color(0.7, 0.65, 0.6, 1.0))
-	_vbox.add_child(_subtitle_label)
+	var subtitle := Label.new()
+	subtitle.text = "You have fallen..."
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_font_override("font", font_main)
+	subtitle.add_theme_font_size_override("font_size", 16)
+	subtitle.add_theme_color_override("font_color", P_TEXT_DIM)
+	vbox.add_child(subtitle)
 
-	# Spacer
-	var spacer = Control.new()
-	spacer.custom_minimum_size = Vector2(0, 8)
-	_vbox.add_child(spacer)
+	vbox.add_child(_spacer(8))
 
-	# Respawn button
-	_respawn_btn = _make_button("Respawn at Checkpoint", Color(0.2, 0.55, 0.3, 1.0))
+	# Respawn button (green, like regular buttons)
+	_respawn_btn = _make_button("Respawn at Checkpoint", false)
 	_respawn_btn.pressed.connect(_on_respawn_pressed)
-	_vbox.add_child(_respawn_btn)
+	vbox.add_child(_respawn_btn)
 
-	# Quit button
-	_quit_btn = _make_button("Quit to Menu", Color(0.55, 0.2, 0.2, 1.0))
+	# Quit button (red/exit style)
+	_quit_btn = _make_button("Quit to Menu", true)
 	_quit_btn.pressed.connect(_on_quit_pressed)
-	_vbox.add_child(_quit_btn)
+	vbox.add_child(_quit_btn)
+
+	# Wire keyboard focus navigation
+	var buttons: Array[Button] = [_respawn_btn, _quit_btn]
+	_wire_focus(buttons)
 
 
-func _make_button(text: String, color: Color) -> Button:
-	var btn = Button.new()
-	btn.text = text
-	btn.custom_minimum_size = Vector2(220, 40)
+func _make_button(label_text: String, is_exit: bool) -> Button:
+	var btn := Button.new()
+	btn.text = label_text
+	btn.custom_minimum_size = Vector2(BTN_W, BTN_H)
+	btn.focus_mode = Control.FOCUS_ALL
+	btn.add_theme_font_override("font", font_main)
+	btn.add_theme_font_size_override("font_size", 18)
+	btn.add_theme_color_override("font_color", P_TEXT)
+	btn.add_theme_color_override("font_hover_color", P_TEXT)
+	btn.add_theme_color_override("font_pressed_color", P_TEXT)
+	btn.add_theme_color_override("font_focus_color", P_TEXT)
 
-	var style_normal = StyleBoxFlat.new()
-	style_normal.bg_color = color
-	style_normal.set_corner_radius_all(6)
-	style_normal.set_content_margin_all(8)
-	btn.add_theme_stylebox_override("normal", style_normal)
+	var base := P_EXIT if is_exit else P_BTN
+	var hover := P_EXIT_HOVER if is_exit else P_BTN_HOVER
+	var press := P_EXIT_PRESS if is_exit else P_BTN_PRESS
+	var border := P_EXIT_BORDER if is_exit else P_BTN_BORDER
+	var hilite := Color("#c86060") if is_exit else P_FRAME_HILITE
 
-	var style_hover = StyleBoxFlat.new()
-	style_hover.bg_color = color.lightened(0.2)
-	style_hover.set_corner_radius_all(6)
-	style_hover.set_content_margin_all(8)
-	btn.add_theme_stylebox_override("hover", style_hover)
+	var sn := StyleBoxFlat.new()
+	sn.bg_color = base
+	sn.border_color = border
+	sn.set_border_width_all(2)
+	sn.border_width_bottom = 4
+	sn.set_corner_radius_all(CORNER)
+	sn.content_margin_left = 8
+	sn.content_margin_right = 8
+	sn.content_margin_top = 4
+	sn.content_margin_bottom = 6
+	btn.add_theme_stylebox_override("normal", sn)
 
-	var style_pressed = StyleBoxFlat.new()
-	style_pressed.bg_color = color.darkened(0.15)
-	style_pressed.set_corner_radius_all(6)
-	style_pressed.set_content_margin_all(8)
-	btn.add_theme_stylebox_override("pressed", style_pressed)
+	var sh := sn.duplicate()
+	sh.bg_color = hover
+	sh.border_color = hilite
+	btn.add_theme_stylebox_override("hover", sh)
 
-	btn.add_theme_font_size_override("font_size", 16)
-	btn.add_theme_color_override("font_color", Color(1, 1, 1, 0.95))
+	var sp := sn.duplicate()
+	sp.bg_color = press
+	sp.border_width_bottom = 2
+	sp.content_margin_top = 6
+	sp.content_margin_bottom = 4
+	btn.add_theme_stylebox_override("pressed", sp)
+
+	var sf := sh.duplicate()
+	sf.border_color = P_GOLD
+	btn.add_theme_stylebox_override("focus", sf)
+
+	btn.mouse_entered.connect(func():
+		if not is_instance_valid(btn):
+			return
+		btn.grab_focus()
+		btn.pivot_offset = btn.size * 0.5
+		create_tween().tween_property(btn, "scale", Vector2(1.04, 1.04), 0.08))
+	btn.mouse_exited.connect(func():
+		if not is_instance_valid(btn):
+			return
+		btn.pivot_offset = btn.size * 0.5
+		create_tween().tween_property(btn, "scale", Vector2.ONE, 0.08))
 	return btn
+
+
+func _wire_focus(buttons: Array[Button]) -> void:
+	for i in buttons.size():
+		var btn := buttons[i]
+		var prev := buttons[(i - 1) % buttons.size()]
+		var nxt := buttons[(i + 1) % buttons.size()]
+		btn.focus_neighbor_top = prev.get_path()
+		btn.focus_neighbor_bottom = nxt.get_path()
+		btn.focus_neighbor_left = btn.get_path()
+		btn.focus_neighbor_right = btn.get_path()
+		btn.focus_previous = prev.get_path()
+		btn.focus_next = nxt.get_path()
+
+
+func _spacer(h: float) -> Control:
+	var s := Control.new()
+	s.custom_minimum_size.y = h
+	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return s
 
 
 # ═══════════════════════════════════════════════════════════════════════

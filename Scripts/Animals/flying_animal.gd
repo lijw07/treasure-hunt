@@ -14,18 +14,22 @@ extends CharacterBody2D
 
 @export_group("Audio")
 @export var ambient_sound: AudioStream
-@export var ambient_interval_min: float = 10.0
-@export var ambient_interval_max: float = 25.0
+@export var ambient_interval_min: float = 18.0
+@export var ambient_interval_max: float = 40.0
+@export var flying_sound: AudioStream
+@export var flying_sound_interval: float = 1.2
 
 var _direction: Vector2 = Vector2.ZERO
 var _timer: float = 0.0
 var _time: float = 0.0
 var _spawn_position: Vector2 = Vector2.ZERO
 var _audio_timer: float = 0.0
+var _flying_sound_timer: float = 0.0
 
 @onready var _sprite: Sprite2D = $Sprite if has_node("Sprite") else null
 @onready var _audio_player: AudioStreamPlayer2D = $AudioStreamPlayer2D if has_node("AudioStreamPlayer2D") else null
 @onready var _anim_player: AnimationPlayer = $AnimationPlayer if has_node("AnimationPlayer") else null
+@onready var _flying_player: AudioStreamPlayer2D = $FlyingSoundPlayer if has_node("FlyingSoundPlayer") else null
 
 
 func _ready() -> void:
@@ -71,6 +75,15 @@ func _physics_process(delta: float) -> void:
 	# Flip sprite based on direction
 	if _sprite and _direction.x != 0:
 		_sprite.flip_h = _direction.x < 0
+
+	# Flying sound (continuous buzz/flutter)
+	if _flying_player and flying_sound:
+		_flying_sound_timer -= delta
+		if _flying_sound_timer <= 0.0:
+			_flying_player.stream = flying_sound
+			_flying_player.pitch_scale = randf_range(0.95, 1.05)
+			_flying_player.play()
+			_flying_sound_timer = flying_sound_interval
 
 	# Audio
 	if _audio_player and ambient_sound:

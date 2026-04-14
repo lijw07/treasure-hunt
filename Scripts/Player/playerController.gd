@@ -217,9 +217,10 @@ func _on_collect_area_entered(area: Area2D) -> void:
 		_magnet_targets.append(area)
 
 
-func take_damage(amount: int = 1) -> void:
+func take_damage(amount: int = 1) -> bool:
 	if _health and _health.has_method("take_damage"):
-		_health.take_damage(amount)
+		return _health.take_damage(amount)
+	return false
 
 
 func apply_knockback(kb: Vector2) -> void:
@@ -228,6 +229,12 @@ func apply_knockback(kb: Vector2) -> void:
 
 func apply_stun(_from_position: Vector2) -> void:
 	if state == State.DEAD or state == State.DODGE or state == State.ATTACK:
+		return
+	# Don't stun during invincibility frames — the enemy toggles its weapon
+	# monitoring on/off each attack cycle, which re-fires area_entered even
+	# when the player is invincible.  Without this check the player gets
+	# stun-locked between combos and _hide_all_weapons() keeps firing.
+	if _health and _health.is_invincible():
 		return
 	# Knock backwards from the direction the player was walking
 	var move_dir := velocity.normalized() if velocity.length() > 5.0 else _facing_to_vector()
@@ -614,6 +621,14 @@ func _state_attack(delta: float) -> void:
 		# Safety: always disable all hitboxes when leaving ATTACK state
 		# prevents lingering weapon areas from damaging enemies while idle/moving
 		_hide_all_weapons()
+		_queued_combo = false
+
+		# Stop the looping attack animation so it doesn't keep applying
+		# stale track values (frame, z_index) to weapon sprites after we
+		# leave the ATTACK state.  playerAnimation.gd will pick up the
+		# correct idle/walk animation on the next _process frame.
+		if _anim_player:
+			_anim_player.stop(true)
 
 		_combo_window_timer = COMBO_WINDOW
 		if _get_input_direction() != Vector2.ZERO:
@@ -675,6 +690,11 @@ func _try_attack() -> bool:
 	# even if the AnimationPlayer is still playing the same animation from a
 	# previous attack (race between _physics_process and _process).
 	_anim_player.play(anim_name)
+	# Force the AnimationPlayer to apply the first frame's track values (frame,
+	# z_index, flip) right now.  Without this, the values only update on the
+	# next _process cycle, leaving weapon sprites with stale properties for
+	# one frame after _show_weapon makes them visible.
+	_anim_player.seek(0.0, true)
 	_show_weapon(prefix)
 	_play_attack_sfx(prefix)
 	return true
@@ -774,7 +794,7 @@ func _bow_cancel() -> void:
 	if _weapons_node:
 		_weapons_node.position = _bow_original_weap_pos
 	if _anim_player:
-		_anim_player.stop()
+		_anim_player.stop(true)
 	_hide_all_weapons()
 	if _get_input_direction() != Vector2.ZERO:
 		state = State.MOVE
@@ -788,6 +808,9 @@ func _advance_sword_combo() -> void:
 
 	if _anim_player == null or not _anim_player.has_animation(anim_name):
 		_sword_combo_step = 0
+		_hide_all_weapons()
+		if _anim_player:
+			_anim_player.stop(true)
 		state = State.IDLE
 		return
 
@@ -795,6 +818,7 @@ func _advance_sword_combo() -> void:
 	attack_anim_name = anim_name
 	_attack_timer = _anim_player.get_animation(anim_name).length
 	_anim_player.play(anim_name)
+	_anim_player.seek(0.0, true)
 	_show_weapon("sword_combo")
 	if _audio:
 		_audio.play_sword_swing(_sword_combo_step)
@@ -876,8 +900,10 @@ func _hide_all_weapons() -> void:
 		_weapons_node.visible = false
 	if _sword_node:
 		_sword_node.visible = false
+		_sword_node.z_index = 1
 	if _tools_node:
 		_tools_node.visible = false
+		_tools_node.z_index = 1
 	if _bow_node:
 		_bow_node.visible = false
 	if _fishing_rod_node:

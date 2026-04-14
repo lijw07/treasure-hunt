@@ -28,6 +28,7 @@ _data = {
 radius = 5.0
 
 [node name="Mage_Projectile" type="Area2D"]
+z_index = 2
 collision_layer = 32
 collision_mask = 1
 script = ExtResource("2_script")

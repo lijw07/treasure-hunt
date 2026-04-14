@@ -61,6 +61,14 @@ func _process_chase(_delta: float) -> void:
 		_play_directional_anim("walk")
 		return
 
+	# In attack range but on cooldown — hold position, play idle
+	# (without this branch, the enemy walks forward into attack range and
+	# never stops, so the walk anim plays while basically standing still).
+	if dist <= attack_range:
+		velocity = Vector2.ZERO
+		_play_directional_anim("idle")
+		return
+
 	# Move toward preferred distance
 	velocity = dir * chase_speed
 	_play_directional_anim("walk")

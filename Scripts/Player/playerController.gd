@@ -218,6 +218,11 @@ func _on_collect_area_entered(area: Area2D) -> void:
 
 
 func take_damage(amount: int = 1) -> bool:
+	# If mounted, getting hit knocks the player off the horse first.
+	# Skip dismount if we're in invincibility frames so the hit won't actually
+	# register — otherwise the player would be dismounted by phantom hits.
+	if mounted and _health and not _health.is_invincible():
+		_dismount()
 	if _health and _health.has_method("take_damage"):
 		return _health.take_damage(amount)
 	return false
@@ -227,18 +232,17 @@ func apply_knockback(kb: Vector2) -> void:
 	_knockback_velocity = kb
 
 
-func apply_stun(_from_position: Vector2) -> void:
-	if state == State.DEAD or state == State.DODGE or state == State.ATTACK:
+func apply_stun(from_position: Vector2) -> void:
+	if state == State.DEAD or state == State.DODGE:
 		return
-	# Don't stun during invincibility frames — the enemy toggles its weapon
-	# monitoring on/off each attack cycle, which re-fires area_entered even
-	# when the player is invincible.  Without this check the player gets
-	# stun-locked between combos and _hide_all_weapons() keeps firing.
-	if _health and _health.is_invincible():
-		return
-	# Knock backwards from the direction the player was walking
-	var move_dir := velocity.normalized() if velocity.length() > 5.0 else _facing_to_vector()
-	_stun_direction = -move_dir
+	# NOTE: no is_invincible() guard here — health_system.take_damage() sets
+	# the invincibility timer on the SAME frame as the hit, which would make
+	# this early-return for the very hit that triggered it.  player_hurtbox.gd
+	# already gates this call behind `was_hurt`, so we only ever stun on hits
+	# that actually dealt damage (no stun-lock during iframes).
+	# Knock the player BACKWARDS — opposite of whichever way they're facing.
+	# from_position is unused, but kept in the signature for callers.
+	_stun_direction = -_facing_to_vector()
 	_stun_timer = stun_duration
 	_knockback_velocity = Vector2.ZERO
 	state = State.STUN

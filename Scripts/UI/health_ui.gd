@@ -37,7 +37,8 @@ const HEAL_POP_SCALE: float = 1.4
 const IDLE_BOB_SPEED: float = 1.8
 const IDLE_BOB_AMOUNT: float = 1.5
 
-const EMPTY_TINT: Color = Color(0.35, 0.30, 0.30, 0.55)
+const EMPTY_TINT: Color = Color(0.25, 0.20, 0.22, 0.85)  # Dark, fully readable outline
+const HALF_BG_TINT: Color = Color(0.55, 0.45, 0.45, 0.95) # Brighter so the right half reads as "lost"
 const DAMAGE_FLASH_COLOR: Color = Color(1.0, 0.2, 0.2, 1.0)
 
 # ── Textures ──────────────────────────────────────────────────────────────
@@ -198,22 +199,29 @@ func _refresh_display() -> void:
 
 func _refresh_heart(index: int) -> void:
 	var hp_in_this_heart := clampi(_current_hp - index * HP_PER_HEART, 0, HP_PER_HEART)
+	var fg_icon := _fg_icons[index]
+	var fg_clip := _fg_clips[index]
+	var bg_icon := _bg_icons[index]
 
-	# Set clip width to control how much of the full heart is visible
+	# Always reset modulate so a stale damage flash can never linger.
+	fg_icon.modulate = Color.WHITE
+
 	if hp_in_this_heart == HP_PER_HEART:
-		# Full heart
-		_fg_clips[index].size.x = DISPLAY_SIZE
-		_fg_icons[index].modulate = Color.WHITE
-		_bg_icons[index].modulate = EMPTY_TINT
+		# Full heart — show the whole foreground
+		fg_clip.size.x = DISPLAY_SIZE
+		fg_icon.visible = true
+		bg_icon.modulate = EMPTY_TINT
 	elif hp_in_this_heart == 1:
 		# Half heart — show left half of the full heart over the empty bg
-		_fg_clips[index].size.x = DISPLAY_SIZE * 0.5
-		_fg_icons[index].modulate = Color.WHITE
-		_bg_icons[index].modulate = Color(0.45, 0.38, 0.38, 0.7)
+		fg_clip.size.x = DISPLAY_SIZE * 0.5
+		fg_icon.visible = true
+		bg_icon.modulate = HALF_BG_TINT
 	else:
-		# Empty heart
-		_fg_clips[index].size.x = 0
-		_bg_icons[index].modulate = EMPTY_TINT
+		# Empty heart — completely hide the foreground and clear any flash.
+		fg_clip.size.x = 0
+		fg_icon.visible = false
+		_flash_timers[index] = 0.0
+		bg_icon.modulate = EMPTY_TINT
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -271,9 +279,11 @@ func _process_flashes(delta: float) -> void:
 		if _flash_timers[i] <= 0.0:
 			continue
 		_flash_timers[i] -= delta
-		var t := _flash_timers[i] / BOUNCE_DURATION
-		# Flash the foreground icon red then fade back
-		_fg_icons[i].modulate = Color.WHITE.lerp(DAMAGE_FLASH_COLOR, t)
+		# Don't tint a hidden foreground — that's how a "ghost" half-heart
+		# can appear after a heart is supposed to be empty.
+		if _fg_icons[i].visible:
+			var t := _flash_timers[i] / BOUNCE_DURATION
+			_fg_icons[i].modulate = Color.WHITE.lerp(DAMAGE_FLASH_COLOR, t)
 		if _flash_timers[i] <= 0.0:
 			_refresh_heart(i)
 

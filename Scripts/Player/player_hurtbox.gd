@@ -18,7 +18,10 @@ func _on_area_entered(area: Area2D) -> void:
 	elif area.get_parent() and area.get_parent().get("damage") != null:
 		dmg = area.get_parent().damage
 
+	var was_hurt := false
 	if player.has_method("take_damage"):
-		player.take_damage(dmg)
-	if player.has_method("apply_stun"):
+		was_hurt = player.take_damage(dmg)
+	# Only stun when damage was actually dealt — prevents stun-locking during
+	# invincibility frames when the enemy re-enables weapon monitoring.
+	if was_hurt and player.has_method("apply_stun"):
 		player.apply_stun(area.global_position)

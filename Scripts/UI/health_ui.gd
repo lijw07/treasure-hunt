@@ -176,15 +176,15 @@ func _rebuild_hearts() -> void:
 
 
 func _make_heart_rect(tex: AtlasTexture) -> TextureRect:
-	var tr := TextureRect.new()
-	tr.texture = tex
-	tr.custom_minimum_size = Vector2(DISPLAY_SIZE, DISPLAY_SIZE)
-	tr.size = Vector2(DISPLAY_SIZE, DISPLAY_SIZE)
-	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return tr
+	var heart_rect := TextureRect.new()
+	heart_rect.texture = tex
+	heart_rect.custom_minimum_size = Vector2(DISPLAY_SIZE, DISPLAY_SIZE)
+	heart_rect.size = Vector2(DISPLAY_SIZE, DISPLAY_SIZE)
+	heart_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	heart_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	heart_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	heart_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return heart_rect
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -311,6 +311,7 @@ func _connect_health_system() -> void:
 func _on_health_changed(current_hp: int, max_hp: int) -> void:
 	var old_hp := _current_hp
 	var old_max_hearts := _max_hearts
+	@warning_ignore("integer_division")
 	_max_hearts = max_hp / HP_PER_HEART
 	_current_hp = current_hp
 
@@ -351,4 +352,5 @@ func _on_damage_taken(_amount: int) -> void:
 func _hp_to_last_heart(hp: int) -> int:
 	if hp <= 0:
 		return -1
+	@warning_ignore("integer_division")
 	return (hp - 1) / HP_PER_HEART

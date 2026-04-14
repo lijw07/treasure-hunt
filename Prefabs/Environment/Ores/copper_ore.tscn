@@ -11,6 +11,7 @@ atlas = ExtResource("1_ores")
 region = Rect2(96, 16, 16, 16)
 
 [node name="CopperOre" type="StaticBody2D"]
+z_index = 2
 y_sort_enabled = true
 collision_layer = 8
 collision_mask = 0

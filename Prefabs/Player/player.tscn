@@ -18354,7 +18354,7 @@ arrow_scene = ExtResource("10_7m7dm")
 
 [node name="Sword" type="Sprite2D" parent="Weapons" unique_id=194779979]
 visible = false
-z_index = -1
+z_index = 1
 texture_filter = 1
 texture = ExtResource("7_juxdh")
 hframes = 4
@@ -18413,7 +18413,7 @@ shape = SubResource("RectangleShape2D_405c5")
 
 [node name="Tools" type="Sprite2D" parent="Weapons" unique_id=1509320704]
 visible = false
-z_index = -1
+z_index = 1
 texture_filter = 1
 texture = ExtResource("9_kgmex")
 hframes = 6
